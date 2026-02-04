@@ -609,6 +609,20 @@ describe('validateNewText', () => {
     assert.ok(result.warnings.some(w => w.includes('comma')));
   });
 
+  it('allows trailing comma when original also ends with comma (list items)', () => {
+    // This is the false positive fix: if original text also ends with comma,
+    // it's likely a list item and the trailing comma is intentional
+    const original = 'all salaries, wages, bonuses, commissions, maternity pay, paternity pay, accrued holiday entitlement and holiday pay entitlement, and other emoluments including but not limited to PAYE income tax, National Insurance contributions, health insurance, death in service benefits, season ticket loans and any contributions to pension arrangements,';
+    const newText = 'all salaries, wages, bonuses, commissions, maternity pay, paternity pay, accrued annual leave entitlement and annual leave pay entitlement, and other emoluments including but not limited to income tax withholding, Central Provident Fund contributions, health insurance, death in service benefits, and any contributions to supplementary retirement schemes,';
+
+    const result = validateNewText(original, newText);
+
+    // Should NOT flag as error since both end with comma
+    assert.equal(result.valid, true);
+    // May still have warnings (like content reduction), but not the trailing comma error
+    assert.ok(!result.warnings.some(w => w.includes('trailing comma')));
+  });
+
   it('detects garbled content pattern (4.3S$)', () => {
     const original = 'The sum of £500, clause 4.3.';
     const newText = 'The sum of 4.3S$500';

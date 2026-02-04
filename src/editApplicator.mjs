@@ -144,16 +144,27 @@ export function validateNewText(originalText, newText, options = {}) {
   }
 
   // Check for content that looks like JSON was cut mid-generation
+  // IMPORTANT: Compare with originalText to avoid false positives when the original
+  // also has the same pattern (e.g., list items that naturally end with commas)
+  const origTrimmed = originalText.trim();
+  const newTrimmed = newText.trim();
+
   const jsonTruncationPatterns = [
     { pattern: /\.\.\.$/, msg: 'Ends with ellipsis (...)' },
-    { pattern: /,\s*$/, msg: 'Ends with trailing comma' },
+    { pattern: /,\s*$/, msg: 'Ends with trailing comma', checkOriginal: true },
     { pattern: /\{\s*$/, msg: 'Ends with opening brace' },
     { pattern: /\[\s*$/, msg: 'Ends with opening bracket' },
     { pattern: /"[^"]*$/, msg: 'Unclosed quote at end' }
   ];
 
-  for (const { pattern, msg } of jsonTruncationPatterns) {
+  for (const { pattern, msg, checkOriginal } of jsonTruncationPatterns) {
     if (pattern.test(newText)) {
+      // If checkOriginal is true, only flag if original doesn't have the same pattern
+      // This prevents false positives for list items that naturally end with commas
+      if (checkOriginal && pattern.test(originalText)) {
+        // Both original and new text have this pattern - likely intentional
+        continue;
+      }
       warnings.push(`Likely truncation: ${msg}`);
       severity = 'error';
       break;

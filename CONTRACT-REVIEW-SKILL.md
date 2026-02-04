@@ -340,13 +340,42 @@ Process sequentially, accumulating edits in a master list.
 
 ## Edit File Format Reference
 
-**⚠️ Common format errors that fail validation:**
+### Required Edit JSON Schema
 
-| WRONG | CORRECT |
-|-------|---------|
-| `"type": "replace"` | `"operation": "replace"` |
-| `"text": "..."` | `"newText": "..."` |
-| `"search": "...", "replace": "..."` | `"newText": "[full text]"` |
+Each edit object MUST use these EXACT field names:
+
+```json
+{
+  "blockId": "b149",           // REQUIRED: Block ID from IR (e.g., "b001", "b149")
+  "operation": "replace",      // REQUIRED: "replace", "delete", "comment", or "insert"
+  "newText": "Full text...",   // REQUIRED for replace: The complete replacement text
+  "diff": true,                // OPTIONAL: Use word-level diff (default: true)
+  "comment": "Explanation"     // OPTIONAL: Comment explaining the change
+}
+```
+
+### Field Names - CRITICAL
+
+| Field | Required For | Description |
+|-------|-------------|-------------|
+| `blockId` | replace, delete, comment | Target block ID (e.g., "b001") |
+| `afterBlockId` | insert | Block to insert after |
+| `operation` | ALL | Must be: `replace`, `delete`, `comment`, `insert` |
+| `newText` | replace | Full replacement text for the block |
+| `text` | insert | Content to insert |
+| `comment` | comment operation | Comment text |
+| `diff` | replace (optional) | Word-level diff mode (default: true) |
+
+### Common Format Errors (WILL FAIL VALIDATION)
+
+| WRONG Field Name | CORRECT Field Name |
+|------------------|-------------------|
+| `"searchText"` | NOT USED - delete this field |
+| `"replaceText"` | `"newText"` |
+| `"type"` | `"operation"` |
+| `"text"` (for replace) | `"newText"` |
+| `"search"`, `"replace"` | Use `"newText"` with full block content |
+| `"oldText"` | NOT USED for edits (only for validation) |
 
 **Correct structure:**
 ```json
@@ -358,6 +387,17 @@ Process sequentially, accumulating edits in a master list.
   "comment": "Explanation"
 }
 ```
+
+### Validation Errors and Warnings
+
+The validator may report:
+
+| Error/Warning | Meaning | Solution |
+|---------------|---------|----------|
+| `missing_field: newText` | Using wrong field name | Use `newText` not `replaceText`/`searchText` |
+| `Significant content reduction` | newText much shorter | Expected for jurisdiction conversion - ignore if intentional |
+| `Ends with trailing comma` | Only flagged if original doesn't end with comma | If both end with comma, this is valid |
+| `content_corruption` | Garbled text patterns | Check for copy-paste errors |
 
 ---
 
