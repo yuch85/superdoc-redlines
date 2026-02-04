@@ -1,7 +1,7 @@
 {
   "name": "superdoc-redlines",
-  "version": "1.0.0",
-  "description": "CLI tool for applying tracked changes and comments to DOCX files using SuperDoc headless mode",
+  "version": "0.2.0",
+  "description": "Structured document operations for AI agents - ID-based DOCX editing with SuperDoc",
   "type": "module",
   "main": "superdoc-redline.mjs",
   "bin": {

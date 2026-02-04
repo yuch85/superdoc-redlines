@@ -1,25 +1,41 @@
-#!/usr/bin/env node
+# Phase 6: CLI Rewrite
 
-/**
- * superdoc-redline.mjs v0.2.0
- *
- * Structured document operations for AI agents.
- * Uses ID-based block editing for deterministic, position-independent edits.
- *
- * Commands:
- *   extract  - Extract structured intermediate representation from DOCX
- *   read     - Read document for LLM consumption (with automatic chunking)
- *   validate - Validate edit instructions against a document
- *   apply    - Apply ID-based edits to a document
- *   merge    - Merge edit files from multiple sub-agents
- *
- * Usage:
- *   node superdoc-redline.mjs extract --input doc.docx --output ir.json
- *   node superdoc-redline.mjs read --input doc.docx [--chunk N]
- *   node superdoc-redline.mjs validate --input doc.docx --edits edits.json
- *   node superdoc-redline.mjs apply --input doc.docx --output out.docx --edits edits.json
- *   node superdoc-redline.mjs merge edits1.json edits2.json --output merged.json
- */
+> **Priority**: Medium  
+> **Dependencies**: Phases 1-5  
+> **Deliverables**: `superdoc-redline.mjs` (complete rewrite)
+
+[← Back to Index](./index.md) | [← Phase 5](./phase-5-multi-agent-merge.md)
+
+---
+
+## Objectives
+
+1. Rewrite the CLI with new subcommand structure
+2. Integrate all new modules
+3. Provide consistent error handling and output format
+4. Support both JSON output (for LLM consumption) and human-readable output
+
+---
+
+## CLI Structure
+
+```bash
+# Commands
+node superdoc-redline.mjs extract --input doc.docx --output ir.json
+node superdoc-redline.mjs read --input doc.docx [--chunk N]
+node superdoc-redline.mjs validate --input doc.docx --edits edits.json
+node superdoc-redline.mjs apply --input doc.docx --output out.docx --edits edits.json
+node superdoc-redline.mjs merge edits1.json edits2.json --output merged.json
+```
+
+---
+
+## Module: CLI (`superdoc-redline.mjs`)
+
+### Dependencies
+
+```javascript
+#!/usr/bin/env node
 
 import { program } from 'commander';
 import { readFile, writeFile } from 'fs/promises';
@@ -34,11 +50,13 @@ program
   .name('superdoc-redline')
   .description('Structured document operations for AI agents')
   .version('0.2.0');
+```
 
-// ============================================================================
-// Command: extract
-// ============================================================================
+---
 
+## Command: `extract`
+
+```javascript
 program
   .command('extract')
   .description('Extract structured intermediate representation from a DOCX file')
@@ -50,41 +68,37 @@ program
   .action(async (options) => {
     try {
       const inputPath = resolve(options.input);
-      const outputPath = options.output
+      const outputPath = options.output 
         ? resolve(options.output)
         : inputPath.replace('.docx', '-ir.json');
-
+      
       console.log(`Extracting IR from: ${inputPath}`);
-
+      
       const ir = await extractDocumentIR(inputPath, {
         format: options.format,
         includeDefinedTerms: options.definedTerms !== false,
         maxTextLength: options.maxText || null
       });
-
+      
       await writeFile(outputPath, JSON.stringify(ir, null, 2));
-
+      
       console.log(`\nExtraction complete:`);
       console.log(`  Blocks: ${ir.blocks.length}`);
       console.log(`  Format: ${ir.metadata.format}`);
-      if (ir.outline) {
-        console.log(`  Outline items: ${countOutlineItems(ir.outline)}`);
-      }
-      if (ir.definedTerms) {
-        console.log(`  Defined terms: ${Object.keys(ir.definedTerms).length}`);
-      }
       console.log(`  Output: ${outputPath}`);
-
+      
     } catch (error) {
       console.error('Error:', error.message);
       process.exit(1);
     }
   });
+```
 
-// ============================================================================
-// Command: read
-// ============================================================================
+---
 
+## Command: `read`
+
+```javascript
 program
   .command('read')
   .description('Read document for LLM consumption (with automatic chunking)')
@@ -93,42 +107,42 @@ program
   .option('--max-tokens <count>', 'Max tokens per chunk', parseInt, 100000)
   .option('-f, --format <type>', 'Output format: full|outline|summary', 'full')
   .option('--stats-only', 'Only show document statistics')
-  .option('--no-metadata', 'Exclude block IDs and positions from output')
   .action(async (options) => {
     try {
       const inputPath = resolve(options.input);
-
+      
       if (options.statsOnly) {
         const stats = await getDocumentStats(inputPath);
         console.log(JSON.stringify(stats, null, 2));
         return;
       }
-
+      
       const result = await readDocument(inputPath, {
         chunkIndex: options.chunk ?? null,
         maxTokens: options.maxTokens,
-        format: options.format,
-        includeMetadata: options.metadata !== false
+        format: options.format
       });
-
+      
       if (!result.success) {
         console.error('Error:', result.error);
         process.exit(1);
       }
-
+      
       // Output as JSON for LLM consumption
       console.log(JSON.stringify(result, null, 2));
-
+      
     } catch (error) {
       console.error('Error:', error.message);
       process.exit(1);
     }
   });
+```
 
-// ============================================================================
-// Command: validate
-// ============================================================================
+---
 
+## Command: `validate`
+
+```javascript
 program
   .command('validate')
   .description('Validate edit instructions against a document')
@@ -138,28 +152,30 @@ program
     try {
       const inputPath = resolve(options.input);
       const editsPath = resolve(options.edits);
-
+      
       const editsJson = await readFile(editsPath, 'utf-8');
       const edits = JSON.parse(editsJson);
-
+      
       const result = await validateEdits(inputPath, edits);
-
+      
       console.log(JSON.stringify(result, null, 2));
-
+      
       if (!result.valid) {
         process.exit(1);
       }
-
+      
     } catch (error) {
       console.error('Error:', error.message);
       process.exit(1);
     }
   });
+```
 
-// ============================================================================
-// Command: apply
-// ============================================================================
+---
 
+## Command: `apply`
+
+```javascript
 program
   .command('apply')
   .description('Apply ID-based edits to a document')
@@ -169,62 +185,51 @@ program
   .option('--author-name <name>', 'Author name for track changes', 'AI Assistant')
   .option('--author-email <email>', 'Author email', 'ai@example.com')
   .option('--no-track-changes', 'Disable track changes mode')
-  .option('--no-validate', 'Skip validation before applying')
-  .option('--no-sort', 'Skip automatic edit sorting')
   .action(async (options) => {
     try {
       const inputPath = resolve(options.input);
       const outputPath = resolve(options.output);
       const editsPath = resolve(options.edits);
-
+      
       const editsJson = await readFile(editsPath, 'utf-8');
       const editConfig = JSON.parse(editsJson);
-
+      
       console.log(`Loading document: ${inputPath}`);
       console.log(`Applying ${editConfig.edits.length} edit(s)...`);
-
+      
       const result = await applyEdits(inputPath, outputPath, editConfig, {
         trackChanges: options.trackChanges !== false,
-        validateFirst: options.validate !== false,
-        sortEdits: options.sort !== false,
         author: {
           name: options.authorName,
           email: options.authorEmail
         }
       });
-
+      
       console.log(`\nResults:`);
       console.log(`  Applied: ${result.applied}`);
       console.log(`  Skipped: ${result.skipped.length}`);
-
+      
       if (result.skipped.length > 0) {
         console.log(`\nSkipped edits:`);
         for (const skip of result.skipped) {
           console.log(`  [${skip.index}] ${skip.blockId} - ${skip.reason}`);
         }
       }
-
-      if (result.comments && result.comments.length > 0) {
-        console.log(`\nComments added: ${result.comments.length}`);
-      }
-
+      
       console.log(`\nOutput: ${outputPath}`);
-
-      // Exit with error if any edits were skipped
-      if (result.skipped.length > 0) {
-        process.exit(1);
-      }
-
+      
     } catch (error) {
       console.error('Error:', error.message);
       process.exit(1);
     }
   });
+```
 
-// ============================================================================
-// Command: merge
-// ============================================================================
+---
 
+## Command: `merge`
+
+```javascript
 program
   .command('merge')
   .description('Merge edit files from multiple sub-agents')
@@ -235,40 +240,34 @@ program
   .action(async (files, options) => {
     try {
       const editPaths = files.map(f => resolve(f));
-
+      
       console.log(`Merging ${editPaths.length} edit file(s)...`);
-
+      
       const result = await mergeEditFiles(editPaths, {
         conflictStrategy: options.conflict,
         outputPath: resolve(options.output)
       });
-
+      
       if (!result.success) {
         console.error('Merge failed:', result.error);
-        if (result.conflicts && result.conflicts.length > 0) {
-          console.log('\nConflicts:');
-          for (const conflict of result.conflicts) {
-            console.log(`  Block ${conflict.blockId}: ${conflict.edits.length} conflicting edits`);
-          }
+        console.log('\nConflicts:');
+        for (const conflict of result.conflicts) {
+          console.log(`  Block ${conflict.blockId}: ${conflict.edits.length} conflicting edits`);
         }
         process.exit(1);
       }
-
+      
       console.log(`\nMerge complete:`);
       console.log(`  Total edits: ${result.stats.totalEdits}`);
       console.log(`  Source files: ${result.stats.sourceFiles}`);
-      if (result.stats.conflictsDetected > 0) {
-        console.log(`  Conflicts resolved: ${result.stats.conflictsDetected}`);
-      }
+      console.log(`  Conflicts resolved: ${result.stats.conflictsDetected}`);
       console.log(`  Output: ${options.output}`);
-
-      // Optional validation against document
+      
+      // Optional validation
       if (options.validate) {
-        console.log(`\nValidating against: ${options.validate}`);
-
         const ir = await extractDocumentIR(resolve(options.validate));
         const validation = validateMergedEdits(result.merged, ir);
-
+        
         if (!validation.valid) {
           console.log('\nValidation issues:');
           for (const issue of validation.issues) {
@@ -276,36 +275,128 @@ program
           }
           process.exit(1);
         }
-
-        console.log('Validation: PASSED');
+        
+        console.log('\nValidation: PASSED');
       }
-
+      
     } catch (error) {
       console.error('Error:', error.message);
       process.exit(1);
     }
   });
 
-// ============================================================================
-// Helper functions
-// ============================================================================
-
-/**
- * Count total outline items including nested children.
- * @param {OutlineItem[]} outline - Outline array
- * @returns {number}
- */
-function countOutlineItems(outline) {
-  if (!outline) return 0;
-  let count = 0;
-  for (const item of outline) {
-    count++;
-    if (item.children) {
-      count += countOutlineItems(item.children);
-    }
-  }
-  return count;
-}
-
-// Parse and run
 program.parse();
+```
+
+---
+
+## Test Requirements
+
+### File: `tests/cli.test.mjs`
+
+```javascript
+import { execSync } from 'child_process';
+import { readFile, writeFile, unlink } from 'fs/promises';
+
+describe('CLI: extract', () => {
+  test('extracts IR from document', () => {
+    const output = execSync(
+      'node superdoc-redline.mjs extract -i fixtures/sample.docx -o /tmp/test-ir.json'
+    ).toString();
+    expect(output).toContain('Extraction complete');
+  });
+});
+
+describe('CLI: read', () => {
+  test('reads document and outputs JSON', () => {
+    const output = execSync(
+      'node superdoc-redline.mjs read -i fixtures/sample.docx'
+    ).toString();
+    const result = JSON.parse(output);
+    expect(result.success).toBe(true);
+  });
+  
+  test('shows stats with --stats-only', () => {
+    const output = execSync(
+      'node superdoc-redline.mjs read -i fixtures/sample.docx --stats-only'
+    ).toString();
+    const stats = JSON.parse(output);
+    expect(stats.blockCount).toBeGreaterThan(0);
+  });
+});
+
+describe('CLI: validate', () => {
+  test('validates valid edits', async () => {
+    // Create valid edits file
+    await writeFile('/tmp/valid-edits.json', JSON.stringify({
+      edits: [{ blockId: 'b001', operation: 'comment', comment: 'test' }]
+    }));
+    
+    const output = execSync(
+      'node superdoc-redline.mjs validate -i fixtures/sample.docx -e /tmp/valid-edits.json'
+    ).toString();
+    const result = JSON.parse(output);
+    expect(result.valid).toBeDefined();
+  });
+});
+
+describe('CLI: apply', () => {
+  test('applies edits to document', async () => {
+    await writeFile('/tmp/apply-edits.json', JSON.stringify({
+      edits: [{ blockId: 'b001', operation: 'comment', comment: 'test' }]
+    }));
+    
+    const output = execSync(
+      'node superdoc-redline.mjs apply -i fixtures/sample.docx -o /tmp/applied.docx -e /tmp/apply-edits.json'
+    ).toString();
+    expect(output).toContain('Applied:');
+  });
+});
+
+describe('CLI: merge', () => {
+  test('merges multiple edit files', async () => {
+    await writeFile('/tmp/edits-1.json', JSON.stringify({
+      edits: [{ blockId: 'b001', operation: 'comment', comment: 'A' }]
+    }));
+    await writeFile('/tmp/edits-2.json', JSON.stringify({
+      edits: [{ blockId: 'b002', operation: 'comment', comment: 'B' }]
+    }));
+    
+    const output = execSync(
+      'node superdoc-redline.mjs merge /tmp/edits-1.json /tmp/edits-2.json -o /tmp/merged.json'
+    ).toString();
+    expect(output).toContain('Merge complete');
+  });
+});
+```
+
+---
+
+## Success Criteria
+
+1. **All commands work**
+   - extract, read, validate, apply, merge all function correctly
+
+2. **Consistent error handling**
+   - All errors output to stderr
+   - Exit codes are correct (0 for success, 1 for failure)
+
+3. **JSON output is parseable**
+   - LLMs can consume read/validate output directly
+
+4. **Human-readable feedback**
+   - Progress messages for long operations
+   - Clear summaries of results
+
+---
+
+## Exit Conditions
+
+- [ ] `superdoc-redline.mjs` completely rewritten
+- [ ] All five commands implemented and working
+- [ ] All Phase 6 tests pass
+- [ ] CLI help text is accurate and helpful
+
+---
+
+[← Back to Index](./index.md) | [← Phase 5](./phase-5-multi-agent-merge.md) | [Next: Phase 7 →](./phase-7-docs-integration.md)
