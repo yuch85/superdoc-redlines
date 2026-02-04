@@ -119,6 +119,8 @@ Apply ID-based edits to a document with track changes.
 node superdoc-redline.mjs apply --input doc.docx --output redlined.docx --edits edits.json
 node superdoc-redline.mjs apply -i doc.docx -o out.docx -e edits.json --author-name "Reviewer"
 node superdoc-redline.mjs apply -i doc.docx -o out.docx -e edits.json --no-track-changes
+node superdoc-redline.mjs apply -i doc.docx -o out.docx -e edits.json --verbose  # Debug position mapping
+node superdoc-redline.mjs apply -i doc.docx -o out.docx -e edits.json --strict   # Fail on truncation warnings
 ```
 
 **Options:**
@@ -132,6 +134,18 @@ node superdoc-redline.mjs apply -i doc.docx -o out.docx -e edits.json --no-track
 | `--no-track-changes` | Disable track changes mode |
 | `--no-validate` | Skip validation before applying |
 | `--no-sort` | Skip automatic edit sorting |
+| `-v, --verbose` | Enable verbose logging for debugging position mapping |
+| `--strict` | Treat truncation/corruption warnings as errors |
+
+**Validation:**
+
+The apply command automatically validates edits before applying, including:
+- Block ID existence checks
+- Required field validation (newText for replace, etc.)
+- **newText truncation detection** - Warns if newText appears truncated or corrupted
+- **Content corruption detection** - Detects patterns like "4.3S$" that suggest LLM output issues
+
+Use `--strict` to fail the apply if any warnings are detected.
 
 ### `merge`
 

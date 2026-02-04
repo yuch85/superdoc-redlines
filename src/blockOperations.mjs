@@ -144,26 +144,75 @@ function findTextInBlock(editor, blockPos, blockSize, searchText) {
 }
 
 /**
+ * Validate a position map for correctness.
+ * Checks for undefined entries and monotonically increasing values.
+ *
+ * @param {number[]} map - Position map to validate
+ * @param {string} blockText - The text that was mapped
+ * @returns {{ valid: boolean, errors: string[], undefinedCount: number, firstUndefined: number }}
+ */
+function validatePositionMap(map, blockText) {
+  const errors = [];
+  let undefinedCount = 0;
+  let firstUndefined = -1;
+  let prevPos = -1;
+
+  for (let i = 0; i < map.length; i++) {
+    if (map[i] === undefined) {
+      undefinedCount++;
+      if (firstUndefined === -1) {
+        firstUndefined = i;
+        errors.push(`Undefined entry at textPos ${i} (char: '${blockText[i]}')`);
+      }
+    } else {
+      if (prevPos !== -1 && map[i] <= prevPos) {
+        errors.push(`Non-monotonic: map[${i}]=${map[i]} <= map[${i - 1}]=${prevPos}`);
+      }
+      prevPos = map[i];
+    }
+  }
+
+  return {
+    valid: undefinedCount === 0 && errors.length === 0,
+    errors,
+    undefinedCount,
+    firstUndefined
+  };
+}
+
+/**
  * Build a mapping from text positions to editor positions for a block.
  * This handles blocks with complex internal structure (multiple runs, bookmarks).
  *
- * @param {Editor} editor - Editor instance  
+ * @param {Editor} editor - Editor instance
  * @param {number} blockPos - Block position in document
  * @param {string} blockText - The full text content of the block
  * @param {number} blockSize - Block node size
- * @returns {number[]} - Array where index is text position and value is editor position
+ * @param {Object} options - Options
+ * @param {boolean} [options.verbose=false] - Enable verbose logging
+ * @returns {{ map: number[], validation: { valid: boolean, errors: string[], undefinedCount: number, firstUndefined: number } }}
  */
-function buildPositionMap(editor, blockPos, blockText, blockSize) {
+function buildPositionMap(editor, blockPos, blockText, blockSize, options = {}) {
+  const { verbose = false } = options;
   const map = new Array(blockText.length);
   let editorPos = blockPos;
   let textPos = 0;
-  
+
+  if (verbose) {
+    console.log(`[buildPositionMap] Building map for block at pos ${blockPos}`);
+    console.log(`  Text length: ${blockText.length}, Block size: ${blockSize}`);
+    console.log(`  Text preview: "${blockText.slice(0, 50)}${blockText.length > 50 ? '...' : ''}"`);
+  }
+
   // Walk through finding each character
   while (textPos < blockText.length && editorPos < blockPos + blockSize) {
     try {
       const char = editor.state.doc.textBetween(editorPos, editorPos + 1);
       if (char === blockText[textPos]) {
         map[textPos] = editorPos;
+        if (verbose && textPos < 10) {
+          console.log(`  textPos ${textPos} ('${blockText[textPos]}') -> editorPos ${editorPos}`);
+        }
         textPos++;
       }
       editorPos++;
@@ -171,7 +220,22 @@ function buildPositionMap(editor, blockPos, blockText, blockSize) {
       editorPos++;
     }
   }
-  
+
+  // Validate the map
+  const validation = validatePositionMap(map, blockText);
+
+  if (verbose) {
+    console.log(`  Mapped ${textPos} of ${blockText.length} characters`);
+    console.log(`  Validation: ${validation.valid ? 'PASSED' : 'FAILED'}`);
+    if (!validation.valid) {
+      console.log(`  Errors: ${validation.errors.slice(0, 3).join('; ')}${validation.errors.length > 3 ? '...' : ''}`);
+    }
+  }
+
+  // For backwards compatibility, return just the map array
+  // But attach validation as a property
+  map._validation = validation;
+
   return map;
 }
 
@@ -194,38 +258,85 @@ function buildPositionMap(editor, blockPos, blockText, blockSize) {
  * @param {string} newText - Target text
  * @param {Author} author
  * @param {string|null} comment
+ * @param {Object} options - Options
+ * @param {boolean} [options.verbose=false] - Enable verbose logging for debugging
  * @returns {OperationResult}
  */
-function applyWordDiff(editor, pos, node, originalText, newText, author, comment) {
+function applyWordDiff(editor, pos, node, originalText, newText, author, comment, options = {}) {
+  const { verbose = false } = options;
+  const blockId = node.attrs.sdBlockId || node.attrs.seqId || 'unknown';
+
+  if (verbose) {
+    console.log(`\n[applyWordDiff] Block ${blockId}`);
+    console.log(`  Original (${originalText.length} chars): "${originalText.slice(0, 80)}${originalText.length > 80 ? '...' : ''}"`);
+    console.log(`  New (${newText.length} chars): "${newText.slice(0, 80)}${newText.length > 80 ? '...' : ''}"`);
+  }
+
   const operations = diffToOperations(originalText, newText);
+
+  if (verbose) {
+    console.log(`  Operations (${operations.length}):`);
+    for (const op of operations) {
+      if (op.type === 'replace') {
+        console.log(`    REPLACE at ${op.position}: "${op.deleteText.slice(0, 30)}${op.deleteText.length > 30 ? '...' : ''}" -> "${op.insertText.slice(0, 30)}${op.insertText.length > 30 ? '...' : ''}"`);
+      } else if (op.type === 'delete') {
+        console.log(`    DELETE at ${op.position}: "${op.text.slice(0, 40)}${op.text.length > 40 ? '...' : ''}"`);
+      } else if (op.type === 'insert') {
+        console.log(`    INSERT at ${op.position}: "${op.text.slice(0, 40)}${op.text.length > 40 ? '...' : ''}"`);
+      }
+    }
+  }
 
   let stats = { insertions: 0, deletions: 0, unchanged: 0 };
 
   // Build a complete position map for the block
   // This handles complex node structures with multiple runs, bookmarks, etc.
-  const positionMap = buildPositionMap(editor, pos, originalText, node.nodeSize);
+  const positionMap = buildPositionMap(editor, pos, originalText, node.nodeSize, { verbose });
+
+  // Check position map validation
+  const validation = positionMap._validation;
+  if (validation && !validation.valid) {
+    console.warn(`[applyWordDiff] Position map validation failed for block ${blockId}:`);
+    console.warn(`  Undefined entries: ${validation.undefinedCount}`);
+    console.warn(`  First undefined at textPos ${validation.firstUndefined}`);
+    if (validation.errors.length > 0) {
+      console.warn(`  Errors: ${validation.errors.slice(0, 3).join('; ')}`);
+    }
+  }
 
   // CRITICAL: Sort operations by position in DESCENDING order (end-to-start)
   // This ensures earlier positions remain valid as we modify from the end
   const sortedOps = [...operations].sort((a, b) => b.position - a.position);
 
+  if (verbose) {
+    console.log(`  Applying ${sortedOps.length} operations (sorted end-to-start):`);
+  }
+
   for (const op of sortedOps) {
     // Apply each operation atomically - the operation completes fully
     // before we move to the next one. Since we're going end-to-start,
     // the position for this operation is still valid.
-    
+
     let success = true;
-    
+
     if (op.type === 'delete') {
       // Use position map to get actual editor positions
       const from = positionMap[op.position];
       const toTextPos = op.position + op.text.length - 1;
-      const to = positionMap[toTextPos] + 1; // +1 because we want to include the last char
-      
+      const to = positionMap[toTextPos] !== undefined ? positionMap[toTextPos] + 1 : undefined;
+
+      if (verbose) {
+        console.log(`    DELETE: textPos [${op.position}, ${toTextPos}] -> editorPos [${from}, ${to})`);
+        console.log(`      Text: "${op.text.slice(0, 40)}${op.text.length > 40 ? '...' : ''}"`);
+      }
+
       if (from === undefined || to === undefined) {
+        const errMsg = `Could not map text position ${op.position} or ${toTextPos} to editor position (from=${from}, to=${to}). ` +
+          `Text to delete: "${op.text.slice(0, 30)}${op.text.length > 30 ? '...' : ''}"`;
+        console.error(`[applyWordDiff] ${errMsg}`);
         return {
           success: false,
-          error: `Could not map text position ${op.position} to editor position`,
+          error: errMsg,
           blockId: node.attrs.sdBlockId
         };
       }
@@ -244,12 +355,23 @@ function applyWordDiff(editor, pos, node, originalText, newText, author, comment
       stats.deletions++;
     } else if (op.type === 'insert') {
       // For insert, use the position just before or at the insertion point
-      const insertAt = positionMap[op.position] || positionMap[op.position - 1] + 1;
-      
+      const insertAt = positionMap[op.position] ??
+        (op.position > 0 && positionMap[op.position - 1] !== undefined
+          ? positionMap[op.position - 1] + 1
+          : undefined);
+
+      if (verbose) {
+        console.log(`    INSERT: textPos ${op.position} -> editorPos ${insertAt}`);
+        console.log(`      Text: "${op.text.slice(0, 40)}${op.text.length > 40 ? '...' : ''}"`);
+      }
+
       if (insertAt === undefined) {
+        const errMsg = `Could not map text position ${op.position} to editor position for insert. ` +
+          `Text to insert: "${op.text.slice(0, 30)}${op.text.length > 30 ? '...' : ''}"`;
+        console.error(`[applyWordDiff] ${errMsg}`);
         return {
           success: false,
-          error: `Could not map text position ${op.position} to editor position`,
+          error: errMsg,
           blockId: node.attrs.sdBlockId
         };
       }
@@ -270,12 +392,21 @@ function applyWordDiff(editor, pos, node, originalText, newText, author, comment
       // Use position map to get actual editor positions
       const from = positionMap[op.position];
       const toTextPos = op.position + op.deleteText.length - 1;
-      const to = positionMap[toTextPos] + 1; // +1 because we want to include the last char
-      
+      const to = positionMap[toTextPos] !== undefined ? positionMap[toTextPos] + 1 : undefined;
+
+      if (verbose) {
+        console.log(`    REPLACE: textPos [${op.position}, ${toTextPos}] -> editorPos [${from}, ${to})`);
+        console.log(`      Delete: "${op.deleteText.slice(0, 30)}${op.deleteText.length > 30 ? '...' : ''}"`);
+        console.log(`      Insert: "${op.insertText.slice(0, 30)}${op.insertText.length > 30 ? '...' : ''}"`);
+      }
+
       if (from === undefined || to === undefined) {
+        const errMsg = `Could not map text position ${op.position} or ${toTextPos} to editor position (from=${from}, to=${to}). ` +
+          `Replace "${op.deleteText.slice(0, 20)}..." with "${op.insertText.slice(0, 20)}..."`;
+        console.error(`[applyWordDiff] ${errMsg}`);
         return {
           success: false,
-          error: `Could not map text position ${op.position} to editor position`,
+          error: errMsg,
           blockId: node.attrs.sdBlockId
         };
       }
@@ -294,14 +425,20 @@ function applyWordDiff(editor, pos, node, originalText, newText, author, comment
       stats.deletions++;
       stats.insertions++;
     }
-    
+
     // If any operation fails (e.g., schema validation error), signal failure
     if (!success) {
+      const errMsg = `Word diff operation ${op.type} failed at text position ${op.position}`;
+      console.error(`[applyWordDiff] ${errMsg}`);
       return {
         success: false,
-        error: `Word diff operation failed at position ${op.position}`,
+        error: errMsg,
         blockId: node.attrs.sdBlockId
       };
+    }
+
+    if (verbose) {
+      console.log(`      -> Success`);
     }
   }
 
@@ -367,6 +504,7 @@ function applyFullReplace(editor, pos, node, newText, author, comment) {
  * @param {boolean} [options.trackChanges=true] - Enable track changes
  * @param {string} [options.comment=null] - Optional comment to attach
  * @param {Author} [options.author] - Author info for track changes
+ * @param {boolean} [options.verbose=false] - Enable verbose logging for debugging
  * @returns {Promise<OperationResult>}
  */
 export async function replaceBlockById(editor, blockId, newText, options = {}) {
@@ -374,7 +512,8 @@ export async function replaceBlockById(editor, blockId, newText, options = {}) {
     diff = true,
     trackChanges = true,
     comment = null,
-    author = DEFAULT_AUTHOR
+    author = DEFAULT_AUTHOR,
+    verbose = false
   } = options;
 
   // Resolve blockId (could be UUID or seqId)
@@ -400,14 +539,14 @@ export async function replaceBlockById(editor, blockId, newText, options = {}) {
   if (diff) {
     // Apply word-level diff with fallback to full replacement on failure
     try {
-      const diffResult = applyWordDiff(editor, pos, node, originalText, newText, author, comment);
-      
+      const diffResult = applyWordDiff(editor, pos, node, originalText, newText, author, comment, { verbose });
+
       if (!diffResult.success) {
         // Word diff failed (e.g., schema validation error on small insertions) - fall back to full replacement
         console.warn(`Word diff failed for block ${blockId}, using full replacement: ${diffResult.error}`);
         return applyFullReplace(editor, pos, node, newText, author, comment);
       }
-      
+
       return diffResult;
     } catch (error) {
       // Exception thrown during word diff (e.g., schema validation) - fall back to full replacement

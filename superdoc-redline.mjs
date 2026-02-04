@@ -187,6 +187,8 @@ program
   .option('--no-track-changes', 'Disable track changes mode')
   .option('--no-validate', 'Skip validation before applying')
   .option('--no-sort', 'Skip automatic edit sorting')
+  .option('-v, --verbose', 'Enable verbose logging for debugging position mapping')
+  .option('--strict', 'Treat truncation warnings as errors')
   .action(async (options) => {
     try {
       const inputPath = resolve(options.input);
@@ -210,6 +212,8 @@ program
         trackChanges: options.trackChanges !== false,
         validateFirst: options.validate !== false,
         sortEdits: options.sort !== false,
+        verbose: options.verbose || false,
+        strict: options.strict || false,
         author: {
           name: options.authorName,
           email: options.authorEmail
@@ -219,6 +223,15 @@ program
       console.log(`\nResults:`);
       console.log(`  Applied: ${result.applied}`);
       console.log(`  Skipped: ${result.skipped.length}`);
+
+      // Show warnings if any
+      if (result.warnings && result.warnings.length > 0) {
+        console.log(`  Warnings: ${result.warnings.length}`);
+        console.log(`\nWarnings (possible truncation/corruption):`);
+        for (const warn of result.warnings) {
+          console.log(`  [${warn.editIndex}] ${warn.blockId} - ${warn.message}`);
+        }
+      }
 
       if (result.skipped.length > 0) {
         console.log(`\nSkipped edits:`);
@@ -235,6 +248,12 @@ program
 
       // Exit with error if any edits were skipped
       if (result.skipped.length > 0) {
+        process.exit(1);
+      }
+
+      // In strict mode, warnings are also errors
+      if (options.strict && result.warnings && result.warnings.length > 0) {
+        console.error('\nStrict mode: treating warnings as errors');
         process.exit(1);
       }
 

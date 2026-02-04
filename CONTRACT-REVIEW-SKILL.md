@@ -389,15 +389,27 @@ Create similar reference files for other jurisdiction pairs as needed.
 
 4. **Output file size bloat** - SuperDoc writes DOCX without compression (2.5MB instead of 400KB). Always recompress the output file.
 
+5. **Truncated newText** - LLM output can be truncated, especially for long JSON values. The apply command now validates newText and warns about:
+   - Significant content reduction (> 50%)
+   - Incomplete sentences (ends mid-word)
+   - JSON truncation patterns (trailing comma, unclosed quote)
+   - Garbled content patterns (e.g., "4.3S$")
+
+   Use `--strict` to fail the apply if any warnings are detected.
+
 **Command sequence that works:**
 ```bash
 node superdoc-redline.mjs read --input doc.docx --stats-only
 node superdoc-redline.mjs extract --input doc.docx --output doc-ir.json
 node superdoc-redline.mjs validate --input doc.docx --edits edits.json
-node superdoc-redline.mjs apply --input doc.docx --output out.docx --edits edits.json
+node superdoc-redline.mjs apply --input doc.docx --output out.docx --edits edits.json --strict
 # Then recompress (see Step 5 above)
 ```
 
+**Apply options:**
+- `--strict` - Treat truncation/corruption warnings as errors (recommended)
+- `--verbose` - Enable detailed logging for debugging
+
 ---
 
-*Last updated: 4 February 2026*
+*Last updated: 5 February 2026*

@@ -188,24 +188,41 @@ ls edits-*.json
 node superdoc-redline.mjs merge \
   edits-definitions.json edits-provisions.json edits-warranties.json \
   -o merged-edits.json \
-  -c combine \
+  -c error \
   -v contract.docx
 ```
 
-**Conflict strategies:** `error` (strict), `first`, `last`, `combine` (recommended).
+**Conflict strategies:**
+- `error` - **Recommended.** Fail if any conflicts. Forces you to review overlapping edits.
+- `first` - Keep first edit (by file order)
+- `last` - Keep last edit (by file order)
+- `combine` - Merge comments; use `first` for other operations. **Caution:** May silently pick truncated edits.
+
+> **⚠️ Why `-c error` is now recommended:**
+> Previous guidance recommended `-c combine`, but investigation found this can silently keep truncated or corrupt edits when two agents edit the same block. Use `-c error` to detect conflicts, then resolve manually.
 
 ### Step 4.3: Pre-Apply Verification
 
 - [ ] Every DELETE in Context Document has an edit
-- [ ] Every compound term has an edit  
+- [ ] Every compound term has an edit
 - [ ] No residual terms in newText fields
 
 ### Step 4.4: Validate & Apply
 
 ```bash
 node superdoc-redline.mjs validate --input contract.docx --edits merged-edits.json
-node superdoc-redline.mjs apply -i contract.docx -o amended.docx -e merged-edits.json
+node superdoc-redline.mjs apply -i contract.docx -o amended.docx -e merged-edits.json --strict
 ```
+
+**New apply options:**
+- `--strict` - Treat truncation/corruption warnings as errors. Recommended for production.
+- `--verbose` - Enable detailed logging for debugging position mapping issues.
+
+The apply command now validates `newText` for:
+- Significant truncation (content reduction > 50%)
+- Incomplete sentences (ends mid-word)
+- JSON truncation patterns (trailing comma, unclosed quote)
+- Garbled content patterns (e.g., "4.3S$" suggesting corruption)
 
 ### Step 4.5: Recompress Output File
 

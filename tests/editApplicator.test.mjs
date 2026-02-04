@@ -12,6 +12,7 @@ import {
   applyEdits,
   validateEdits,
   validateEditsAgainstIR,
+  validateNewText,
   sortEditsForApplication,
   loadDocumentForEditing,
   exportDocument
@@ -561,5 +562,92 @@ describe('error handling', () => {
     assert.equal(result.success, false);
     assert.equal(result.skipped.length, 1);
     assert.ok(result.skipped[0].reason.includes('invalid_operation') || result.skipped[0].reason.includes('Unknown'));
+  });
+});
+
+describe('validateNewText', () => {
+  it('returns valid for normal text changes', () => {
+    const original = 'The Purchase Price is the sum of £500.';
+    const newText = 'The Purchase Price is the sum of S$500.';
+
+    const result = validateNewText(original, newText);
+
+    assert.equal(result.valid, true);
+    assert.equal(result.severity, 'ok');
+    assert.equal(result.warnings.length, 0);
+  });
+
+  it('detects significant truncation', () => {
+    const original = 'The Purchase Price is the sum of £500, which shall be paid by the Buyer to the Seller in cash on Completion in accordance with clause 4.3.';
+    const newText = 'The Purchase Price is the sum of S$500';
+
+    const result = validateNewText(original, newText);
+
+    assert.equal(result.severity, 'warning');
+    assert.ok(result.warnings.some(w => w.includes('reduction') || w.includes('truncation')));
+  });
+
+  it('detects ellipsis truncation pattern', () => {
+    const original = 'Full sentence here.';
+    const newText = 'Full sentence here...';
+
+    const result = validateNewText(original, newText);
+
+    assert.equal(result.valid, false);
+    assert.equal(result.severity, 'error');
+    assert.ok(result.warnings.some(w => w.includes('ellipsis')));
+  });
+
+  it('detects trailing comma truncation', () => {
+    const original = 'Complete text.';
+    const newText = 'Complete text,';
+
+    const result = validateNewText(original, newText);
+
+    assert.equal(result.valid, false);
+    assert.equal(result.severity, 'error');
+    assert.ok(result.warnings.some(w => w.includes('comma')));
+  });
+
+  it('detects garbled content pattern (4.3S$)', () => {
+    const original = 'The sum of £500, clause 4.3.';
+    const newText = 'The sum of 4.3S$500';
+
+    const result = validateNewText(original, newText);
+
+    assert.equal(result.valid, false);
+    assert.equal(result.severity, 'error');
+    assert.ok(result.warnings.some(w => w.includes('corruption') || w.includes('Suspicious')));
+  });
+
+  it('allows empty newText for deletions', () => {
+    const original = 'Some text to delete.';
+    const newText = '';
+
+    const result = validateNewText(original, newText);
+
+    assert.equal(result.valid, true);
+    assert.equal(result.severity, 'ok');
+  });
+
+  it('does not flag short text changes', () => {
+    const original = 'Short';
+    const newText = 'S';
+
+    const result = validateNewText(original, newText);
+
+    // Short text shouldn't trigger truncation warnings
+    assert.equal(result.valid, true);
+  });
+
+  it('allows legitimate pattern that looks like truncation', () => {
+    // Some valid text might end with numbers that look suspicious
+    const original = 'Version 1.0';
+    const newText = 'Version 2.0';
+
+    const result = validateNewText(original, newText);
+
+    assert.equal(result.valid, true);
+    assert.equal(result.warnings.length, 0);
   });
 });

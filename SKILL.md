@@ -86,10 +86,17 @@ Exit code `0` = valid, `1` = issues found.
 node superdoc-redline.mjs apply \
   --input contract.docx \
   --output redlined.docx \
-  --edits edits.json
+  --edits edits.json \
+  --strict
 ```
 
 Result: `redlined.docx` with tracked changes visible in Microsoft Word.
+
+**Apply options:**
+- `--strict` - Treat truncation/corruption warnings as errors (recommended)
+- `--verbose` - Enable detailed logging for debugging
+- `--no-track-changes` - Disable track changes mode
+- `--no-validate` - Skip validation before applying
 
 ## Edit Operations
 
@@ -267,8 +274,10 @@ node superdoc-redline.mjs apply -i doc.docx -o out.docx -e edits.md
 | `read -i doc.docx --chunk N` | Read specific chunk |
 | `validate -i doc.docx -e edits.json` | Validate edits |
 | `apply -i doc.docx -o out.docx -e edits.json` | Apply with track changes |
+| `apply ... --strict` | Fail on truncation warnings |
+| `apply ... --verbose` | Debug position mapping |
 | `apply -i doc.docx -o out.docx -e edits.md` | Apply from markdown |
-| `merge a.json b.json -o merged.json` | Merge agent edits |
+| `merge a.json b.json -o merged.json -c error` | Merge agent edits (strict) |
 | `parse-edits -i edits.md -o edits.json` | Convert markdown to JSON |
 | `to-markdown -i edits.json -o edits.md` | Convert JSON to markdown |
 

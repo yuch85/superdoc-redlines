@@ -51,6 +51,8 @@ import {
  * @property {Author} author - Author info for tracked changes
  * @property {boolean} validateFirst - Run validation before applying (default: true)
  * @property {boolean} sortEdits - Auto-sort edits for safe application (default: true)
+ * @property {boolean} verbose - Enable verbose logging for debugging position mapping (default: false)
+ * @property {boolean} strict - Treat truncation warnings as errors (default: false)
  */
 
 /**
@@ -60,24 +62,126 @@ import {
  * @property {Array<{index: number, blockId: string, operation?: string, reason: string}>} skipped
  * @property {Array<{index: number, blockId: string, operation: string, diffStats?: object, newBlockId?: string, commentId?: string}>} details
  * @property {Array} comments - Comments data for export
+ * @property {Array<{editIndex: number, blockId: string, message: string}>} warnings - Truncation/corruption warnings
  */
 
 /**
  * @typedef {Object} ValidationResult
  * @property {boolean} valid
  * @property {ValidationIssue[]} issues
- * @property {{totalEdits: number, validEdits: number, invalidEdits: number}} summary
+ * @property {ValidationWarning[]} warnings - Non-blocking warnings (e.g., possible truncation)
+ * @property {{totalEdits: number, validEdits: number, invalidEdits: number, warningCount: number}} summary
  */
 
 /**
  * @typedef {Object} ValidationIssue
  * @property {number} editIndex
- * @property {'missing_block'|'missing_field'|'invalid_operation'} type
+ * @property {'missing_block'|'missing_field'|'invalid_operation'|'content_corruption'} type
+ * @property {string} blockId
+ * @property {string} message
+ */
+
+/**
+ * @typedef {Object} ValidationWarning
+ * @property {number} editIndex
+ * @property {'content_warning'} type
  * @property {string} blockId
  * @property {string} message
  */
 
 const DEFAULT_AUTHOR = { name: 'AI Assistant', email: 'ai@example.com' };
+
+/**
+ * Validate newText for common truncation and corruption patterns.
+ * This helps detect LLM output issues before applying edits.
+ *
+ * @param {string} originalText - The original block text
+ * @param {string} newText - The proposed replacement text
+ * @param {Object} options - Validation options
+ * @param {number} [options.truncationThreshold=0.5] - Warn if newText is less than this ratio of original
+ * @param {number} [options.minLengthForCheck=50] - Only check truncation for texts longer than this
+ * @returns {{ valid: boolean, warnings: string[], severity: 'error'|'warning'|'ok' }}
+ */
+export function validateNewText(originalText, newText, options = {}) {
+  const {
+    truncationThreshold = 0.5,
+    minLengthForCheck = 50
+  } = options;
+
+  const warnings = [];
+  let severity = 'ok';
+
+  // Skip validation for very short texts or deletions
+  if (!newText || newText.length === 0) {
+    return { valid: true, warnings: [], severity: 'ok' };
+  }
+
+  // Check for significant truncation (but not intentional shortening)
+  if (originalText.length >= minLengthForCheck &&
+      newText.length < originalText.length * truncationThreshold &&
+      newText.length > 20) {
+    const reduction = Math.round((1 - newText.length / originalText.length) * 100);
+    warnings.push(`Significant content reduction (${reduction}%): ${originalText.length} → ${newText.length} chars`);
+    severity = 'warning';
+  }
+
+  // Check for incomplete sentences (common truncation pattern)
+  if (newText.length > 30) {
+    const trimmed = newText.trim();
+    const lastChar = trimmed.slice(-1);
+    const validEndings = ['.', '!', '?', ')', ']', '"', "'", ':', ';', ',', '-', '—'];
+
+    // Check if ends mid-word (letter followed by nothing)
+    if (/[a-zA-Z]$/.test(trimmed) && !validEndings.includes(lastChar)) {
+      // Could be intentional (e.g., list item), but flag if original ended properly
+      const origTrimmed = originalText.trim();
+      const origLastChar = origTrimmed.slice(-1);
+      if (validEndings.includes(origLastChar) && origLastChar !== lastChar) {
+        warnings.push(`Possible truncation: ends with "${trimmed.slice(-20)}" (original ended with "${origLastChar}")`);
+        severity = severity === 'error' ? 'error' : 'warning';
+      }
+    }
+  }
+
+  // Check for content that looks like JSON was cut mid-generation
+  const jsonTruncationPatterns = [
+    { pattern: /\.\.\.$/, msg: 'Ends with ellipsis (...)' },
+    { pattern: /,\s*$/, msg: 'Ends with trailing comma' },
+    { pattern: /\{\s*$/, msg: 'Ends with opening brace' },
+    { pattern: /\[\s*$/, msg: 'Ends with opening bracket' },
+    { pattern: /"[^"]*$/, msg: 'Unclosed quote at end' }
+  ];
+
+  for (const { pattern, msg } of jsonTruncationPatterns) {
+    if (pattern.test(newText)) {
+      warnings.push(`Likely truncation: ${msg}`);
+      severity = 'error';
+      break;
+    }
+  }
+
+  // Check for garbled content (mixed positioning like "4.3S$" pattern)
+  // This pattern suggests content from different parts got combined
+  const garbledPatterns = [
+    { pattern: /\d+\.\d+[A-Z]\$/, msg: 'Suspicious pattern: clause number before currency symbol' },
+    { pattern: /\d+\.\d+S\$/, msg: 'Suspicious pattern: number directly before S$' },
+    { pattern: /\d+\.\d+£/, msg: 'Suspicious pattern: number directly before £' }
+  ];
+
+  for (const { pattern, msg } of garbledPatterns) {
+    if (pattern.test(newText) && !pattern.test(originalText)) {
+      warnings.push(`Content corruption detected: ${msg}`);
+      severity = 'error';
+      break;
+    }
+  }
+
+  return {
+    valid: severity !== 'error',
+    warnings,
+    severity
+  };
+}
 
 /**
  * Apply all edits to a document and export the result.
@@ -94,7 +198,9 @@ export async function applyEdits(inputPath, outputPath, editConfig, options = {}
     trackChanges = true,
     author = editConfig.author || DEFAULT_AUTHOR,
     validateFirst = true,
-    sortEdits = true
+    sortEdits = true,
+    verbose = false,
+    strict = false
   } = options;
 
   const results = {
@@ -102,7 +208,8 @@ export async function applyEdits(inputPath, outputPath, editConfig, options = {}
     applied: 0,
     skipped: [],
     details: [],
-    comments: []
+    comments: [],
+    warnings: []
   };
 
   // Step 1: Load document and create editor
@@ -119,8 +226,32 @@ export async function applyEdits(inputPath, outputPath, editConfig, options = {}
   let editsToApply = [...editConfig.edits];
 
   if (validateFirst) {
-    const validation = validateEditsAgainstIR(editsToApply, ir);
-    if (!validation.valid) {
+    const validation = validateEditsAgainstIR(editsToApply, ir, { warnOnTruncation: true });
+
+    // Collect warnings
+    if (validation.warnings && validation.warnings.length > 0) {
+      for (const warn of validation.warnings) {
+        results.warnings.push({
+          editIndex: warn.editIndex,
+          blockId: warn.blockId,
+          message: warn.message
+        });
+      }
+    }
+
+    // In strict mode, treat warnings as errors
+    if (strict && validation.warnings && validation.warnings.length > 0) {
+      for (const warn of validation.warnings) {
+        validation.issues.push({
+          editIndex: warn.editIndex,
+          type: 'content_warning_strict',
+          blockId: warn.blockId,
+          message: `[STRICT] ${warn.message}`
+        });
+      }
+    }
+
+    if (!validation.valid || (strict && validation.warnings && validation.warnings.length > 0)) {
       // Add validation failures to skipped
       for (const issue of validation.issues) {
         results.skipped.push({
@@ -143,7 +274,7 @@ export async function applyEdits(inputPath, outputPath, editConfig, options = {}
   // Step 5: Apply each edit
   for (let i = 0; i < editsToApply.length; i++) {
     const edit = editsToApply[i];
-    const editResult = await applyOneEdit(editor, edit, author, results.comments, ir);
+    const editResult = await applyOneEdit(editor, edit, author, results.comments, ir, { verbose });
 
     if (editResult.success) {
       results.applied++;
@@ -214,9 +345,12 @@ function resolveBlockIdFromIR(blockId, ir) {
  * @param {Author} author - Author info
  * @param {Array} commentsStore - Array to collect comments
  * @param {DocumentIR} ir - Document IR for ID resolution
+ * @param {Object} options - Additional options
+ * @param {boolean} [options.verbose=false] - Enable verbose logging
  * @returns {Promise<{success: boolean, error?: string, details?: object}>}
  */
-async function applyOneEdit(editor, edit, author, commentsStore, ir) {
+async function applyOneEdit(editor, edit, author, commentsStore, ir, options = {}) {
+  const { verbose = false } = options;
   const { operation } = edit;
 
   // Resolve the blockId/afterBlockId to UUID using IR
@@ -237,7 +371,8 @@ async function applyOneEdit(editor, edit, author, commentsStore, ir) {
         const replaceResult = await replaceBlockById(editor, blockId, edit.newText, {
           diff: edit.diff !== false, // Default to diff mode
           trackChanges: true,
-          author
+          author,
+          verbose
         });
 
         if (replaceResult.success && edit.comment) {
@@ -359,10 +494,16 @@ export async function validateEdits(inputPath, editConfig) {
  * @param {DocumentIR} ir - Document IR
  * @returns {ValidationResult}
  */
-export function validateEditsAgainstIR(edits, ir) {
+export function validateEditsAgainstIR(edits, ir, options = {}) {
+  const { warnOnTruncation = true } = options;
   const issues = [];
+  const warnings = [];
   const blockIdSet = new Set(ir.blocks.map(b => b.id));
   const seqIdSet = new Set(ir.blocks.map(b => b.seqId));
+
+  // Build lookup maps for block content
+  const blockById = new Map(ir.blocks.map(b => [b.id, b]));
+  const blockBySeqId = new Map(ir.blocks.map(b => [b.seqId, b]));
 
   for (let i = 0; i < edits.length; i++) {
     const edit = edits[i];
@@ -417,15 +558,42 @@ export function validateEditsAgainstIR(edits, ir) {
         message: `Unknown operation: ${edit.operation}`
       });
     }
+
+    // Validate newText for replace operations (check for truncation/corruption)
+    if (warnOnTruncation && edit.operation === 'replace' && edit.newText) {
+      const block = blockById.get(blockId) || blockBySeqId.get(blockId);
+      if (block && block.text) {
+        const validation = validateNewText(block.text, edit.newText);
+        if (!validation.valid) {
+          // Errors are blocking issues
+          issues.push({
+            editIndex: i,
+            type: 'content_corruption',
+            blockId,
+            message: `newText validation failed: ${validation.warnings.join('; ')}`
+          });
+        } else if (validation.warnings.length > 0) {
+          // Warnings are non-blocking but reported
+          warnings.push({
+            editIndex: i,
+            type: 'content_warning',
+            blockId,
+            message: validation.warnings.join('; ')
+          });
+        }
+      }
+    }
   }
 
   return {
     valid: issues.length === 0,
     issues,
+    warnings,
     summary: {
       totalEdits: edits.length,
       validEdits: edits.length - issues.length,
-      invalidEdits: issues.length
+      invalidEdits: issues.length,
+      warningCount: warnings.length
     }
   };
 }
