@@ -117,6 +117,15 @@ function getBlockInfo(editor, uuid) {
 /**
  * Apply word-level diff to produce minimal tracked changes.
  *
+ * CRITICAL FIX: Operations must be applied in REVERSE order (end-to-start)
+ * to prevent position corruption. When we apply from end to start:
+ * - Later positions are modified first
+ * - Earlier positions remain valid (content before them is unchanged)
+ * - No complex offset tracking needed
+ *
+ * Additionally, each operation is applied atomically using chain().run()
+ * to ensure the document state is fully updated before the next operation.
+ *
  * @param {Editor} editor
  * @param {number} pos - Block position
  * @param {Node} node - Block node
@@ -131,44 +140,78 @@ function applyWordDiff(editor, pos, node, originalText, newText, author, comment
 
   let stats = { insertions: 0, deletions: 0, unchanged: 0 };
 
-  // Track position offset from start of block content
-  let offset = 0;
-  const contentStart = pos + 1; // Inside the block
+  // SuperDoc uses paragraph > run > text structure, so content is at pos + 2
+  // (pos + 1 would be the run node opening, pos + 2 is the actual text)
+  const contentStart = pos + 2;
 
-  for (const op of operations) {
+  // CRITICAL: Sort operations by position in DESCENDING order (end-to-start)
+  // This ensures earlier positions remain valid as we modify from the end
+  const sortedOps = [...operations].sort((a, b) => b.position - a.position);
+
+  for (const op of sortedOps) {
+    // Apply each operation atomically - the operation completes fully
+    // before we move to the next one. Since we're going end-to-start,
+    // the position for this operation is still valid.
+    
+    let success = true;
+    
     if (op.type === 'delete') {
-      const from = contentStart + op.position + offset;
+      const from = contentStart + op.position;
       const to = from + op.text.length;
 
-      // Select and delete the text
-      editor.commands.setTextSelection({ from, to });
-      editor.commands.deleteSelection();
+      // Use chain().run() for atomic execution if available
+      if (editor.chain) {
+        success = editor.chain()
+          .setTextSelection({ from, to })
+          .deleteSelection()
+          .run();
+      } else {
+        editor.commands.setTextSelection({ from, to });
+        editor.commands.deleteSelection();
+      }
 
-      // Adjust offset for removed content
-      offset -= op.text.length;
       stats.deletions++;
     } else if (op.type === 'insert') {
-      const insertAt = contentStart + op.position + offset;
+      const insertAt = contentStart + op.position;
 
-      // Set cursor and insert
-      editor.commands.setTextSelection({ from: insertAt, to: insertAt });
-      editor.commands.insertContent(op.text);
+      // Use chain().run() for atomic execution if available
+      if (editor.chain) {
+        success = editor.chain()
+          .setTextSelection({ from: insertAt, to: insertAt })
+          .insertContent(op.text)
+          .run();
+      } else {
+        editor.commands.setTextSelection({ from: insertAt, to: insertAt });
+        editor.commands.insertContent(op.text);
+      }
 
-      // Adjust offset for inserted content
-      offset += op.text.length;
       stats.insertions++;
     } else if (op.type === 'replace') {
-      const from = contentStart + op.position + offset;
+      const from = contentStart + op.position;
       const to = from + op.deleteText.length;
 
-      // Select the text to replace
-      editor.commands.setTextSelection({ from, to });
-      editor.commands.insertContent(op.insertText);
+      // Use chain().run() for atomic execution if available
+      if (editor.chain) {
+        success = editor.chain()
+          .setTextSelection({ from, to })
+          .insertContent(op.insertText)
+          .run();
+      } else {
+        editor.commands.setTextSelection({ from, to });
+        editor.commands.insertContent(op.insertText);
+      }
 
-      // Adjust offset
-      offset += op.insertText.length - op.deleteText.length;
       stats.deletions++;
       stats.insertions++;
+    }
+    
+    // If any operation fails (e.g., schema validation error), signal failure
+    if (!success) {
+      return {
+        success: false,
+        error: `Word diff operation failed at position ${op.position}`,
+        blockId: node.attrs.sdBlockId
+      };
     }
   }
 
@@ -195,8 +238,10 @@ function applyWordDiff(editor, pos, node, originalText, newText, author, comment
  * @returns {OperationResult}
  */
 function applyFullReplace(editor, pos, node, newText, author, comment) {
-  const from = pos + 1;
-  const to = pos + node.nodeSize - 1;
+  // SuperDoc uses paragraph > run > text structure
+  // Content text starts at pos + 2, ends at pos + nodeSize - 2
+  const from = pos + 2;
+  const to = pos + node.nodeSize - 2;
 
   // Select all content and replace
   editor.commands.setTextSelection({ from, to });
@@ -252,8 +297,22 @@ export async function replaceBlockById(editor, blockId, newText, options = {}) {
   const originalText = extractNodeText(node);
 
   if (diff) {
-    // Apply word-level diff
-    return applyWordDiff(editor, pos, node, originalText, newText, author, comment);
+    // Apply word-level diff with fallback to full replacement on failure
+    try {
+      const diffResult = applyWordDiff(editor, pos, node, originalText, newText, author, comment);
+      
+      if (!diffResult.success) {
+        // Word diff failed (e.g., schema validation error on small insertions) - fall back to full replacement
+        console.warn(`Word diff failed for block ${blockId}, using full replacement: ${diffResult.error}`);
+        return applyFullReplace(editor, pos, node, newText, author, comment);
+      }
+      
+      return diffResult;
+    } catch (error) {
+      // Exception thrown during word diff (e.g., schema validation) - fall back to full replacement
+      console.warn(`Word diff threw error for block ${blockId}, using full replacement: ${error.message}`);
+      return applyFullReplace(editor, pos, node, newText, author, comment);
+    }
   } else {
     // Full replacement
     return applyFullReplace(editor, pos, node, newText, author, comment);
@@ -499,8 +558,10 @@ export async function addCommentToBlock(editor, blockId, commentText, author = D
   }
 
   const { node, pos } = blockInfo;
-  const from = pos + 1; // Inside the block
-  const to = pos + node.nodeSize - 1;
+  // SuperDoc uses paragraph > run > text structure
+  // Content text starts at pos + 2, ends at pos + nodeSize - 2
+  const from = pos + 2;
+  const to = pos + node.nodeSize - 2;
 
   // Set selection
   editor.commands.setTextSelection({ from, to });

@@ -241,14 +241,19 @@ async function applyOneEdit(editor, edit, author, commentsStore, ir) {
         });
 
         if (replaceResult.success && edit.comment) {
-          const commentResult = await addCommentToBlock(editor, blockId, edit.comment, author);
-          if (commentResult.success) {
-            commentsStore.push({
-              id: commentResult.commentId,
-              blockId: blockId,
-              text: edit.comment,
-              author: author
-            });
+          try {
+            const commentResult = await addCommentToBlock(editor, blockId, edit.comment, author);
+            if (commentResult.success) {
+              commentsStore.push({
+                id: commentResult.commentId,
+                blockId: blockId,
+                text: edit.comment,
+                author: author
+              });
+            }
+          } catch (commentError) {
+            // Comment failed but replace succeeded - don't fail the entire edit
+            console.warn(`Comment failed for block ${edit.blockId}: ${commentError.message}`);
           }
         }
 
