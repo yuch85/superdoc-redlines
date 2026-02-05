@@ -480,6 +480,24 @@ async function applyOneEdit(editor, edit, author, commentsStore, ir, options = {
     return { success: false, error: `Block not found: ${edit.afterBlockId}` };
   }
 
+  // Pre-check for TOC blocks on replace operations (they fail with cryptic ProseMirror errors)
+  // This provides a clear error message instead of letting the operation fail
+  if (operation === 'replace' && edit.blockId) {
+    const block = ir.blocks.find(b => b.id === blockId || b.seqId === edit.blockId);
+    if (block) {
+      const tocCheck = detectTocStructure(block);
+      if (tocCheck.isToc) {
+        return {
+          success: false,
+          error: `Cannot edit TOC block ${edit.blockId}: ${tocCheck.reason}. ` +
+            `TOC blocks have nested link structures that cause track changes to fail. ` +
+            `Skip this block and document for manual post-processing. ` +
+            `See CONTRACT-REVIEW-SKILL.md "TOC Block Limitations" for details.`
+        };
+      }
+    }
+  }
+
   try {
     switch (operation) {
       case 'replace': {
@@ -579,6 +597,17 @@ async function applyOneEdit(editor, edit, author, commentsStore, ir, options = {
         };
     }
   } catch (error) {
+    // Check if this is a TOC-related error (nested link structures cause schema validation failures)
+    const errorMsg = error.message || String(error);
+    if (errorMsg.includes('Invalid content for node') && errorMsg.includes('link')) {
+      return {
+        success: false,
+        error: `TOC block edit failed for ${edit.blockId || edit.afterBlockId}: ` +
+          `Block has nested link structures incompatible with track changes. ` +
+          `Skip this block and document for manual post-processing. ` +
+          `Original error: ${errorMsg}`
+      };
+    }
     return {
       success: false,
       error: error.message

@@ -71,7 +71,12 @@ export function parseMarkdownEdits(markdown) {
 
   // Parse replacement/insert text sections first so we can reference them later
   const textSections = new Map();
-  const textSectionRegex = /###\s+(b\d+)\s+(newText|insertText)\s*\n([\s\S]*?)(?=(?:\n###\s+b\d+\s+(?:newText|insertText))|$)/gi;
+  // FIXED: Also stop at ## headings to prevent trailing content (like "## Notes") from being
+  // included in the last edit's newText. The lookahead now stops at:
+  // - Another ### b### newText/insertText section
+  // - A ## heading (any level 2 heading)
+  // - End of string
+  const textSectionRegex = /###\s+(b\d+)\s+(newText|insertText)\s*\n([\s\S]*?)(?=(?:\n###\s+b\d+\s+(?:newText|insertText))|\n##\s|$)/gi;
   let textMatch;
   while ((textMatch = textSectionRegex.exec(markdown)) !== null) {
     const blockId = textMatch[1];

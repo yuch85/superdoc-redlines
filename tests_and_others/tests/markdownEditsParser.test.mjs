@@ -655,6 +655,115 @@ describe('editsToMarkdown', () => {
   });
 });
 
+describe('Issue #2: Trailing Content Bug Fix', () => {
+  it('should NOT include trailing ## Notes sections in the last newText', () => {
+    const markdown = `# Edits
+
+## Metadata
+- **Version**: 0.2.0
+- **Author Name**: Test
+
+## Edits Table
+
+| Block | Op | Diff | Comment |
+|-------|-----|------|---------|
+| b165 | replace | true | Test change |
+
+## Replacement Text
+
+### b165 newText
+This is the replacement text.
+
+## Notes
+This is a trailing note section that should NOT be included in the edit.
+Additional notes here.
+`;
+
+    const result = parseMarkdownEdits(markdown);
+
+    assert.strictEqual(result.edits.length, 1);
+    assert.strictEqual(result.edits[0].newText, 'This is the replacement text.');
+    assert.ok(!result.edits[0].newText.includes('trailing'), 'newText should NOT contain trailing ## Notes content');
+    assert.ok(!result.edits[0].newText.includes('Additional notes'), 'newText should NOT contain trailing ## Notes content');
+  });
+
+  it('should NOT include trailing ## Summary sections in the last newText', () => {
+    const markdown = `## Edits Table
+
+| Block | Op | Diff | Comment |
+|-------|-----|------|---------|
+| b100 | replace | true | Update clause |
+
+## Replacement Text
+
+### b100 newText
+The updated clause content goes here.
+
+## Summary
+Total edits: 1
+This summary should NOT appear in the newText.
+`;
+
+    const result = parseMarkdownEdits(markdown);
+
+    assert.strictEqual(result.edits.length, 1);
+    assert.strictEqual(result.edits[0].newText, 'The updated clause content goes here.');
+    assert.ok(!result.edits[0].newText.includes('Summary'), 'newText should NOT contain trailing ## Summary content');
+    assert.ok(!result.edits[0].newText.includes('Total edits'), 'newText should NOT contain trailing summary content');
+  });
+
+  it('should correctly parse multiple newText sections with trailing content', () => {
+    const markdown = `## Edits Table
+
+| Block | Op | Diff | Comment |
+|-------|-----|------|---------|
+| b001 | replace | true | First |
+| b002 | replace | true | Second |
+
+## Replacement Text
+
+### b001 newText
+First replacement.
+
+### b002 newText
+Second replacement.
+
+## Footer
+End of edits file - this should NOT be in any newText.
+`;
+
+    const result = parseMarkdownEdits(markdown);
+
+    assert.strictEqual(result.edits.length, 2);
+    assert.strictEqual(result.edits[0].newText, 'First replacement.');
+    assert.strictEqual(result.edits[1].newText, 'Second replacement.');
+    assert.ok(!result.edits[1].newText.includes('Footer'), 'Last newText should NOT contain trailing ## Footer content');
+    assert.ok(!result.edits[1].newText.includes('End of edits'), 'Last newText should NOT contain trailing content');
+  });
+
+  it('should handle ## header immediately after newText content', () => {
+    const markdown = `## Edits Table
+
+| Block | Op | Diff | Comment |
+|-------|-----|------|---------|
+| b050 | replace | true | Test |
+
+## Replacement Text
+
+### b050 newText
+Content ends here.
+## Trailing Header Without Blank Line
+This should NOT be in newText.
+`;
+
+    const result = parseMarkdownEdits(markdown);
+
+    assert.strictEqual(result.edits.length, 1);
+    assert.strictEqual(result.edits[0].newText, 'Content ends here.');
+    assert.ok(!result.edits[0].newText.includes('Trailing Header'), 'newText should stop at ## header');
+  });
+});
+
 describe('Regression: Content Omission Fix', () => {
   it('should not omit simple delete operations in large edit sets', () => {
     // Build a large edit set with many operations

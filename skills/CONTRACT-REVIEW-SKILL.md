@@ -103,24 +103,24 @@ As you read each chunk, populate:
 - Total chunks: X | Total blocks: Y | Date: [date]
 
 ## 1. Defined Terms to Change
-| Original | New | Def Block | Usage Blocks | Amended? |
-|----------|-----|-----------|--------------|----------|
-| [term] | [new] | b### | b###, b###... | [ ] |
+| Original | New | Def Block | Usage Blocks | Partition | Amended? |
+|----------|-----|-----------|--------------|-----------|----------|
+| [term] | [new] | b### | b###, b###... | A | [ ] |
 
 ## 2. Compound Defined Terms
-| Compound Term | Contains | Def Block | New Term |
-|---------------|----------|-----------|----------|
-| [term] | [base] | b### | [new] |
+| Compound Term | Contains | Def Block | New Term | Partition |
+|---------------|----------|-----------|----------|-----------|
+| [term] | [base] | b### | [new] | A |
 
 ## 3. Definitions to DELETE (no equivalent)
-| Term | Def Block | Delete Edit Created? |
-|------|-----------|---------------------|
-| [term] | b### | [ ] |
+| Term | Def Block | Partition | Delete Edit Created? |
+|------|-----------|-----------|---------------------|
+| [term] | b### | A | [ ] |
 
 ## 4. Provisions to Delete + Insertions Needed
-| Block | Provision | Delete? | Insert Equivalent? |
-|-------|-----------|---------|-------------------|
-| b### | [desc] | Yes | Yes/No |
+| Block | Provision | Delete? | Insert Equivalent? | Partition |
+|-------|-----------|---------|-------------------|-----------|
+| b### | [desc] | Yes | Yes/No | B |
 
 ## 5. Cross-References Map
 | Reference | Target | Block IDs |
@@ -132,6 +132,8 @@ As you read each chunk, populate:
 |-------|-------------|--------------|
 | 0 | b001-b150 | Parties, Recitals |
 ```
+
+**Note:** The `Partition` column indicates which work partition is responsible for amending this term (for multi-agent workflow). This prevents duplicate edits and ensures comprehensive coverage. For single-agent workflow, you can omit this column.
 
 ### Step 1.3: Definitions Audit (CRITICAL)
 
@@ -187,6 +189,13 @@ After each chunk, update the Context Document to track which terms/blocks have b
 ### Markdown Format (Recommended for >30 edits)
 
 ```markdown
+# Edits
+
+## Metadata
+- **Version**: 0.2.0
+- **Author Name**: AI Legal Counsel
+- **Author Email**: ai@counsel.example.com
+
 ## Edits Table
 | Block | Op | Diff | Comment |
 |-------|-----|------|---------|
@@ -198,6 +207,20 @@ After each chunk, update the Context Document to track which terms/blocks have b
 ### b165 newText
 Business Day: a day other than a Saturday, Sunday or public holiday in [Location] when banks in [Location] are open for business.
 ```
+
+#### Converting Markdown to JSON
+
+For large edit sets, create edits in markdown format, then convert to JSON using:
+
+```bash
+node superdoc-redline.mjs parse-edits --input edits.md --output edits.json
+```
+
+**Important notes:**
+- The `## Edits Table` defines operations; `## Replacement Text` provides content
+- Each `### blockId newText` section contains full replacement text (multi-line OK)
+- Do NOT add `## sections` after `## Replacement Text` — the parser will include them in the last edit's newText
+- You can apply markdown files directly without conversion: `apply -e edits.md`
 
 ### JSON Format (for smaller edit sets)
 
@@ -225,6 +248,29 @@ Business Day: a day other than a Saturday, Sunday or public holiday in [Location
 | Term replacements | Structural changes |
 | Surgical edits | >50% text change |
 
+### List Item Punctuation Rules
+
+When editing list items, preserve the original punctuation pattern:
+
+**Semicolon-delimited lists:**
+- First N-1 items end with `;`
+- Second-to-last item ends with `; and` or `; or`
+- Final item ends with `.`
+
+**Example:**
+```
+(a) the first item;
+(b) the second item; and
+(c) the final item.
+```
+
+**When editing:**
+- If editing items (a) or (b), preserve `;` and `; and`
+- If editing item (c), preserve `.`
+- Never change punctuation unless explicitly instructed
+
+**Validation:** The validator may warn if final punctuation changes. Verify any punctuation changes are intentional before applying.
+
 ---
 
 ## Execution Workflow
@@ -232,9 +278,34 @@ Business Day: a day other than a Saturday, Sunday or public holiday in [Location
 ### Step 1: Pre-Apply Verification
 
 Before applying, verify against Context Document:
+
+**1. Content Verification**
 - [ ] All DELETE items have edits
 - [ ] All compound terms changed
 - [ ] No residual terms in newText that should have been changed
+- [ ] No placeholder text like "[TBD]" or "[TODO]" in newText
+
+**2. Punctuation Verification**
+- [ ] List items maintain correct punctuation (`;` vs `.` vs `; and`)
+- [ ] Sentences end with periods
+- [ ] No accidental punctuation changes
+
+**3. Block ID Verification**
+- [ ] All block IDs exist in document (run `validate` to check)
+- [ ] No duplicate block IDs across partitions (if multi-agent)
+
+**4. Diff Mode Verification**
+- [ ] `diff: true` for surgical edits (few words changed)
+- [ ] `diff: false` for complete rewrites (>50% changed)
+
+**5. Review Validation Output**
+```bash
+node superdoc-redline.mjs validate --input contract.docx --edits edits.json 2>&1 | grep -E "warning|error|issue"
+```
+
+- [ ] All validation warnings reviewed and understood
+- [ ] Content reduction warnings justified (or use `--allow-reduction`)
+- [ ] No TOC block edits that will fail
 
 ### Step 2: Validate
 

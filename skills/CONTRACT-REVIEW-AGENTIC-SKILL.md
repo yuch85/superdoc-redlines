@@ -15,17 +15,24 @@ This skill enables **multi-agent contract review** using an orchestrator-subagen
 
 ### When to Use Multi-Agent Workflow
 
-| Document Size | Approach |
-|---------------|----------|
-| < 30K tokens | Single-agent may be sufficient |
-| 30K - 50K tokens | 2-3 work partitions recommended for organizational clarity |
-| 50K - 150K tokens | 2-4 work partitions |
-| > 150K tokens | 4-8 work partitions |
+**Use single-agent when:**
+- You can read the document and create all edits without context pressure
+- The amendment scope is narrow (only governing law, only one term)
+- You have enough context window for both discovery AND edit creation
 
-**Benefits even for smaller documents:**
+**Consider multi-agent when:**
+- You're running into context limits during edit creation
+- You want organizational separation (definitions vs provisions vs schedules)
+- Different sections need different treatment approaches
+- Document is >50K tokens and has many edits needed
+
+**The real signal is context pressure**, not arbitrary token thresholds. If single-agent works comfortably, use it. If you're running out of room, split the work.
+
+**Benefits of multi-agent (even for smaller documents):**
 - Organizational clarity (separating definitions from warranties from schedules)
-- Reduced context window pressure
-- Clearer edit attribution and review
+- Smaller, focused edit files are easier to review
+- Clearer edit attribution
+- Explicit merge/conflict handling
 
 ---
 
@@ -80,12 +87,61 @@ node superdoc-redline.mjs read --input contract.docx --stats-only
 node superdoc-redline.mjs extract --input contract.docx --output contract-ir.json
 ```
 
+**Chunk Count Estimation:**
+
+The `recommendedChunksByLimit` provides estimates that may be 1.5-2x lower than actual chunk counts due to block boundary preservation logic.
+
+| Estimate Type | Example (43K token doc) |
+|---------------|-------------------------|
+| Simple estimate | 5 chunks |
+| Adjusted estimate | 8 chunks |
+| **Actual chunks** | 14 chunks |
+
+**Planning guidance:**
+- Multiply adjusted estimate by 1.75 for planning purposes
+- For discovery pass, budget tokens for: `adjusted_chunks × 1.75 × tokens_per_chunk`
+- Example: 8 adjusted × 1.75 × 10K = 140K tokens needed for exhaustive discovery
+
+This is expected behavior, not a bug. The chunking algorithm prioritizes preserving block boundaries over hitting exact token targets.
+
 ### Step 1.2: Read All Chunks
 
 ```bash
 node superdoc-redline.mjs read --input contract.docx --chunk 0 --max-tokens 10000
 # ... continue until hasMore: false
 ```
+
+#### State File Pattern for Discovery
+
+**Problem:** Full discovery means reading all chunks, but keeping chunk content in context exhausts the token budget for edit creation.
+
+**Solution:** As you read each chunk, append findings to a persistent state file:
+
+1. Read chunk 0 → Extract findings → Append to `context-document.md`
+2. Read chunk 1 → Extract findings → Append to `context-document.md`
+3. Continue until all chunks processed
+4. `context-document.md` now contains complete findings
+
+**The chunk content leaves context, but findings persist in the file.**
+
+```markdown
+# Context Document: Asset Purchase Agreement
+
+## Chunk 0 Findings (b001-b100)
+- "VAT" defined in b045
+- "Business Day" references UK in b067
+
+## Chunk 1 Findings (b101-b200)
+- "Companies Act" referenced in b145, b167
+- TUPE provisions: b180-b195
+```
+
+**Combined with find-block:**
+- Use `find-block --regex "VAT|HMRC|Companies House"` to locate blocks first
+- Only read chunks containing relevant blocks
+- Skip chunks with no matches
+
+This approach achieves comprehensive coverage with 25-35% token usage vs 60-75% for exhaustive in-context reading.
 
 ### Step 1.3: Build Context Document
 
@@ -109,89 +165,65 @@ See [CONTRACT-REVIEW-SKILL.md](./CONTRACT-REVIEW-SKILL.md) for the Context Docum
 
 ## Phase 2: Work Decomposition
 
-### Block Range Assignment Best Practices
+### Block Range Assignment
 
-> **⚠️ Critical: Clause-Type Distribution**
->
-> Block numbers are sequential through the document, but clause types are NOT. Definitions may reference governing law; warranties may contain jurisdiction-specific terms; schedules may duplicate main document provisions.
->
-> **Never assign ranges purely by sequential position.** First map clause types to actual block locations during discovery.
+#### Simple Sequential (Default - Works Fine)
 
-### Discovery-First Assignment (Required)
-
-Before assigning ranges, the orchestrator MUST map clause types to actual block locations:
+For most documents, divide blocks evenly by sequential ranges:
 
 ```markdown
-## Clause Location Map (Built During Discovery)
+## Partition Assignments (Sequential)
 
-| Clause Type | Block IDs | Section Name |
-|-------------|-----------|--------------|
-| Definitions | b001-b300 | Clause 1 |
-| Governing Law | b651, b658, b680, b681 | Clause 24 |
-| Jurisdiction | b682-b695 | Clause 25 |
-| Employment | b450-b480, b720-b750 | Clauses 12, Schedule 4 |
-| Tax Provisions | b380-b420, b850-b900 | Clauses 9, Schedule 7 |
-| Boilerplate | b1100-b1200 | Clauses 26-30 |
+### Partition A: b001-b450
+- Section: Parties, Definitions, Interpretation
+- Output: edits-definitions.md
+
+### Partition B: b451-b900
+- Section: Main provisions, Warranties
+- Output: edits-provisions.md
+
+### Partition C: b901-b1337
+- Section: Schedules
+- Output: edits-schedules.md
 ```
 
-Then assign partitions by **clause type grouping**, not sequential ranges:
+**As long as all partitions share the same Context Document** with term mappings, each partition applies the same rules to their blocks. Nothing is missed - if "VAT" appears in b350, Partition A edits it; if "VAT" also appears in b700, Partition B edits it. Both follow the Context Document rules.
+
+#### Partition Size Targets
+
+- Aim for roughly equal block counts for balanced workload
+- 200-500 blocks per partition is typical
+- Adjust based on actual content density (schedules may need fewer blocks per partition)
+
+#### Clause-Type Grouping (Optional)
+
+Use non-sequential assignment only when different clause types genuinely need different treatment:
 
 ```markdown
 ## Partition Assignments (By Clause Type)
 
 ### Partition A: Definitions & Terms
 - Blocks: b001-b300
-- Also: Any blocks referencing defined terms
 - Output: edits-definitions.md
 
 ### Partition B: Jurisdiction-Sensitive Clauses
-- Blocks: b651, b658, b680-b695, b1100-b1150
+- Blocks: b651-b695, b1100-b1150
 - Includes: Governing law, jurisdiction, service of process
 - Output: edits-jurisdiction.md
 
 ### Partition C: Employment & Related
 - Blocks: b450-b480, b720-b750
-- Includes: Employment provisions wherever they appear
+- Needs specialist review
 - Output: edits-employment.md
 ```
 
-### Assignment Strategies
-
-| Strategy | Description | Best For |
-|----------|-------------|----------|
-| **Clause-Type Based** (Recommended) | Group blocks by legal clause type, even if non-contiguous | Complex amendments, jurisdiction conversions |
-| **Section-Based** | Assign contiguous block ranges by document structure | Simple documents with clear section boundaries |
-| **Topic-Based** | Assign specific amendment categories across document | Focused amendments (e.g., "only tax provisions") |
-
-### Include Buffer Zones for Discovery
-
-When clause boundaries are ambiguous, include buffer zones for discovery (not for edits):
-
-```markdown
-### Partition A: Definitions
-- Discovery range: b001-b320 (includes buffer)
-- Edit range: b001-b300 (strict, no overlap)
-
-### Partition B: Provisions
-- Discovery range: b280-b620 (includes buffer)
-- Edit range: b301-b600 (strict, no overlap)
-```
+| Strategy | Best For |
+|----------|----------|
+| **Sequential** (Default) | Most amendments - simple and works |
+| **Clause-Type Based** | When different clauses need different expertise |
+| **Topic-Based** | Focused amendments (e.g., "only tax provisions") |
 
 **Final edit files must have NON-OVERLAPPING block assignments.** Use `-c error` during merge to catch accidental overlaps.
-
-### Anti-Pattern: Sequential-Only Assignment
-
-❌ **Don't do this:**
-```markdown
-Partition A: b001-b400
-Partition B: b401-b800
-Partition C: b801-b1200
-```
-
-This ignores clause type distribution and will miss edits when:
-- Governing law appears in multiple places
-- Defined terms are referenced throughout
-- Schedules repeat main document language
 
 ---
 
@@ -447,6 +479,47 @@ grep -i "[SOURCE_TERM_1]\|[SOURCE_TERM_2]" amended-contract.docx
 ```
 
 **Key:** Invest in schedule and appendix discovery - these sections often duplicate main document provisions and contain additional instances of terms requiring change.
+
+---
+
+## Token Budget Management
+
+### Budget Allocation (for 200K context window)
+
+| Phase | Allocation | Purpose |
+|-------|------------|---------|
+| Discovery | 30% (60K) | Read chunks, build Context Document |
+| Edit creation | 60% (120K) | Create partition edit files |
+| Overhead/merge | 10% (20K) | Merge, validate, apply |
+
+### Discovery Optimization
+
+**High-edit runs (50+ edits)** achieved with strategic discovery:
+- Use `find-block --regex "pattern1|pattern2|pattern3"` instead of reading all chunks
+- Read only 2-3 representative chunks per section
+- Query IR file for term frequencies
+- Save remaining tokens for comprehensive edit creation
+- **Token usage:** 25-35% of budget
+
+**Low-edit runs (16-35 edits)** with exhaustive discovery:
+- Read all chunks sequentially
+- Higher context pressure during edit creation
+- **Token usage:** 60-75% of budget
+
+### Edit Creation Optimization
+
+- Create partition edit files in markdown format
+- Use `parse-edits` to convert (faster than JSON authoring)
+- Focus on clause-type groupings (enables larger edit sets per partition)
+
+### Signs You Should Optimize
+
+- Context usage >70% during discovery
+- Unable to read all schedule blocks
+- Partition creation feeling rushed
+- "Prompt too long" errors
+
+**Solution:** Switch to strategic discovery using find-block + state file pattern.
 
 ---
 

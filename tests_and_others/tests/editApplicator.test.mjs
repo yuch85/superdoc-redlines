@@ -15,7 +15,9 @@ import {
   validateNewText,
   sortEditsForApplication,
   loadDocumentForEditing,
-  exportDocument
+  exportDocument,
+  isTocBlock,
+  detectTocStructure
 } from '../../src/editApplicator.mjs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -562,6 +564,136 @@ describe('error handling', () => {
     assert.equal(result.success, false);
     assert.equal(result.skipped.length, 1);
     assert.ok(result.skipped[0].reason.includes('invalid_operation') || result.skipped[0].reason.includes('Unknown'));
+  });
+});
+
+describe('Issue #3: TOC Block Detection', () => {
+  describe('isTocBlock', () => {
+    it('detects TOC entry with dot leaders and page numbers', () => {
+      const block = { text: '1. Introduction.....12' };
+      assert.equal(isTocBlock(block), true);
+    });
+
+    it('detects TOC entry with tab and page number', () => {
+      const block = { text: '1. Section\t12' };
+      assert.equal(isTocBlock(block), true);
+    });
+
+    it('detects Schedule entry', () => {
+      const block = { text: 'Schedule 1' };
+      assert.equal(isTocBlock(block), true);
+    });
+
+    it('detects Part entry (Roman numerals)', () => {
+      const block = { text: 'Part IV' };
+      assert.equal(isTocBlock(block), true);
+    });
+
+    it('detects Part entry (Arabic numerals)', () => {
+      const block = { text: 'Part 3' };
+      assert.equal(isTocBlock(block), true);
+    });
+
+    it('does NOT flag regular paragraph text', () => {
+      const block = { text: 'This Agreement shall be governed by the laws of Singapore.' };
+      assert.equal(isTocBlock(block), false);
+    });
+
+    it('does NOT flag heading text without TOC markers', () => {
+      const block = { text: '1. Definitions and Interpretation' };
+      assert.equal(isTocBlock(block), false);
+    });
+
+    it('does NOT flag definition text', () => {
+      const block = { text: '"Business Day" means a day other than Saturday, Sunday or public holiday in Singapore.' };
+      assert.equal(isTocBlock(block), false);
+    });
+
+    it('handles empty text gracefully', () => {
+      const block = { text: '' };
+      assert.equal(isTocBlock(block), false);
+    });
+
+    it('handles undefined text gracefully', () => {
+      const block = {};
+      assert.equal(isTocBlock(block), false);
+    });
+  });
+
+  describe('detectTocStructure', () => {
+    it('detects TOC entry and provides reason', () => {
+      const block = { text: '1.2 Section Name.....12', seqId: 'b050' };
+      const result = detectTocStructure(block);
+      
+      assert.equal(result.isToc, true);
+      assert.ok(result.reason.includes('TOC entry pattern'));
+    });
+
+    it('detects short text with TOC markers in document front matter', () => {
+      const block = { text: 'Introduction...5', seqId: 'b010' };
+      const result = detectTocStructure(block);
+      
+      assert.equal(result.isToc, true);
+    });
+
+    it('returns false for regular content', () => {
+      const block = { 
+        text: 'The Seller agrees to transfer all assets to the Buyer.', 
+        seqId: 'b500' 
+      };
+      const result = detectTocStructure(block);
+      
+      assert.equal(result.isToc, false);
+      assert.equal(result.reason, undefined);
+    });
+
+    it('does NOT flag short text without TOC markers', () => {
+      const block = { text: 'Short text here', seqId: 'b020' };
+      const result = detectTocStructure(block);
+      
+      assert.equal(result.isToc, false);
+    });
+  });
+
+  describe('validateEditsAgainstIR with TOC blocks', () => {
+    it('warns when editing a TOC-like block', async () => {
+      // Create a mock IR with a TOC-like block
+      const mockIr = {
+        blocks: [
+          { id: 'uuid-001', seqId: 'b001', text: '1. Introduction.....12', startPos: 0, endPos: 50 }
+        ]
+      };
+
+      const edits = [
+        { blockId: 'b001', operation: 'replace', newText: 'Modified TOC entry' }
+      ];
+
+      const result = validateEditsAgainstIR(edits, mockIr);
+
+      // Should be valid (warning, not error) but have warning
+      assert.equal(result.valid, true);
+      assert.ok(result.warnings.length > 0, 'Should have at least one warning');
+      assert.ok(result.warnings.some(w => w.type === 'toc_warning'), 'Should have TOC warning');
+      assert.ok(result.warnings[0].message.includes('TOC block'), 'Warning should mention TOC block');
+    });
+
+    it('does NOT warn for regular blocks', async () => {
+      const mockIr = {
+        blocks: [
+          { id: 'uuid-001', seqId: 'b001', text: 'Regular clause text about business operations.', startPos: 0, endPos: 100 }
+        ]
+      };
+
+      const edits = [
+        { blockId: 'b001', operation: 'replace', newText: 'Modified regular text' }
+      ];
+
+      const result = validateEditsAgainstIR(edits, mockIr);
+
+      assert.equal(result.valid, true);
+      // Should have no TOC warnings
+      assert.ok(!result.warnings.some(w => w.type === 'toc_warning'), 'Should NOT have TOC warning for regular blocks');
+    });
   });
 });
 

@@ -541,9 +541,13 @@ For large edit sets, use markdown format instead of JSON - it's more resilient t
 | b257 | delete | - | DELETE TULRCA |
 | b165 | replace | true | Change to Singapore |
 
+## Replacement Text
+
 ### b165 newText
 Business Day: a day in Singapore when banks are open.
 ```
+
+**Important:** Do NOT add `## sections` (like `## Notes` or `## Summary`) after `## Replacement Text` — the parser stops at these headings, so any trailing sections will be excluded from the last edit's newText.
 
 **Advantages over JSON:**
 - No syntax errors from missing commas
