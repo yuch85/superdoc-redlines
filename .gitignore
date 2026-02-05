@@ -18,9 +18,14 @@ Thumbs.db
 *.log
 npm-debug.log*
 
-# Debug and test artifacts (kept locally, omitted from publication)
-tests_and_others/
-tests/
+# Debug artifacts (loop outputs, debug logs - kept locally)
+tests_and_others/loop/
+tests_and_others/reference/
+tests_and_others/*.md
+
+# Test output directories (generated during test runs)
+tests/output/
+tests_and_others/tests/output/
 
 # Build artifacts
 dist/
