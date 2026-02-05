@@ -16,7 +16,7 @@ This skill provides a **systematic methodology** for reviewing and amending lega
 
 > **⚠️ Examples Are Illustrative Only**
 > 
-> This document uses **UK → Singapore jurisdiction conversion** as a running example. The specific examples (VAT→GST, block IDs like b165, etc.) are purely illustrative.
+> This document uses jurisdiction conversion as a running example. The specific examples are purely illustrative.
 > 
 > This methodology applies to **any contract review task**: jurisdiction conversions, commercial term updates, party changes, regulatory compliance, etc.
 
@@ -50,8 +50,8 @@ This skill provides a **systematic methodology** for reviewing and amending lega
 
 | ❌ WRONG (Vague) | ✅ CORRECT (Exact) |
 |------------------|-------------------|
-| "Change London to Singapore" | `newText: "...banks in Singapore are open for business."` |
-| "Update to Singapore Companies Act" | `newText: "Companies Act: the Companies Act 1967 of Singapore."` |
+| "Change [City A] to [City B]" | `newText: "...banks in [City B] are open for business."` |
+| "Update to local Companies Act" | `newText: "Companies Act: the Companies Act [Year] of [Jurisdiction]."` |
 
 **Why:** No interpretation gap, immediate validation, faster execution, catches errors early.
 
@@ -137,8 +137,8 @@ As you read each chunk, populate:
 
 **⚠️ MANDATORY.** Scan the Definitions section and:
 1. List EVERY defined term
-2. Flag terms for DELETE (no equivalent in target jurisdiction)
-3. Identify compound terms (e.g., "VAT Records" contains "VAT")
+2. Flag terms for DELETE (no equivalent in target context)
+3. Identify compound terms (e.g., "Tax Records" contains "Tax")
 4. Record ALL block IDs
 
 ### Discovery Checklist
@@ -164,16 +164,16 @@ For each chunk, create amendments with exact text:
 ## Chunk [N] Analysis (b[XXX]-b[YYY])
 
 ### Amendment 1 (Block b165)
-**Category:** Jurisdiction
+**Category:** [Category]
 **Diff Mode:** true
-**Current:** "...banks in London are open for business."
-**Exact New Text:** "...banks in Singapore are open for business."
-**Rationale:** UK→Singapore jurisdiction change
+**Current:** "...original text here..."
+**Exact New Text:** "...replacement text here..."
+**Rationale:** [Reason for change]
 
 ### Amendment 2 (Block b257)
 **Action:** DELETE
-**Current:** "TULRCA: the Trade Union and Labour Relations..."
-**Rationale:** No Singapore equivalent
+**Current:** "Definition: the [Original Statute]..."
+**Rationale:** No equivalent in target context
 ```
 
 ### Step 2.2: Mark Progress in Context Document
@@ -196,7 +196,7 @@ After each chunk, update the Context Document to track which terms/blocks have b
 ## Replacement Text
 
 ### b165 newText
-Business Day: a day other than a Saturday, Sunday or public holiday in Singapore when banks in Singapore are open for business.
+Business Day: a day other than a Saturday, Sunday or public holiday in [Location] when banks in [Location] are open for business.
 ```
 
 ### JSON Format (for smaller edit sets)
@@ -261,7 +261,7 @@ Search output for residual terms that should have been changed. If found, create
 **To verify completeness:**
 1. Open amended document in Word
 2. Accept all changes (Review > Accept All)
-3. Search for residual UK terms
+3. Search for residual terms
 4. OR use grep/find-block understanding that matches include deleted content
 
 #### Coverage Verification (Recommended)
@@ -270,15 +270,15 @@ For comprehensive reviews, verify coverage by counting term occurrences:
 
 ```bash
 # Count occurrences of a term in the original IR
-grep -c 'VAT' contract-ir.json
+grep -c '[TERM]' contract-ir.json
 
-# Your edit count for VAT->GST should match or exceed this count
-# If original has 50 VAT references and you have 45 VAT->GST edits, review for missed blocks
+# Your edit count should match or exceed this count
+# If original has 50 references and you have 45 edits, review for missed blocks
 ```
 
 **Coverage Thresholds:**
-- **>90% coverage required** - For defined term replacements (VAT->GST, HMRC->IRAS)
-- **100% coverage required** - For jurisdiction changes (England->Singapore)
+- **>90% coverage required** - For defined term replacements
+- **100% coverage required** - For jurisdiction/entity changes
 - **Acceptable gaps** - Blocks within deleted sections don't need edits
 
 ### Step 5: Recompress Output File
@@ -345,7 +345,7 @@ When applying edits with superdoc-redlines, the output DOCX uses **track changes
 
 1. **Deleted text still appears in IR extraction** - Because track changes preserves deleted content, extracting IR from an amended document will show BOTH old and new text concatenated.
 
-2. **Post-apply grep finds "deleted" terms** - If you grep for "VAT" in the amended IR, you'll find it because the deleted VAT text is preserved. This is expected behavior.
+2. **Post-apply grep finds "deleted" terms** - If you grep for a term in the amended IR, you'll find it because the deleted text is preserved. This is expected behavior.
 
 3. **To verify deletions, open in Word** - Use Microsoft Word's Review > Track Changes to see deletions with strikethrough.
 
@@ -361,7 +361,7 @@ When applying edits with superdoc-redlines, the output DOCX uses **track changes
 DELETE provision → ASSESS equivalent needed → INSERT if appropriate
 ```
 
-Example: Deleting UK VAT provisions? Insert Singapore GST provisions.
+Example: Deleting jurisdiction-specific provisions? Insert equivalent provisions for the target jurisdiction.
 
 ---
 
@@ -377,7 +377,7 @@ node superdoc-redline.mjs merge \
   -o merged-edits.json -c combine -v contract.docx
 ```
 
-See **CONTRACT-REVIEW-AGENTIC-SKILL.md** for full orchestrator workflow.
+See [CONTRACT-REVIEW-AGENTIC-SKILL.md](./CONTRACT-REVIEW-AGENTIC-SKILL.md) for the full orchestrator workflow.
 
 ### Option 2: Progressive Chunked Review
 
@@ -390,7 +390,7 @@ Process sequentially, accumulating edits in a master list.
 Table of Contents blocks cannot be edited with track changes due to deeply nested link structures in ProseMirror.
 
 **Identifying TOC Blocks:**
-- Typically located in blocks b001-b150 in documents with TOC
+- Typically located in early blocks of documents with TOC
 - Text patterns: "1. Introduction.....12" or "Part I\t5"
 - Short text with dot leaders or tabs followed by page numbers
 
@@ -410,18 +410,18 @@ If you see this error, the block likely has TOC-like link nesting. Skip it and a
 
 ## Delete vs Replace Operations
 
-- **Delete:** Use when the entire provision has no equivalent (e.g., TULRCA, TUPE definitions, inheritance tax clauses)
-- **Replace:** Use when adapting content to new jurisdiction (e.g., VAT→GST, HMRC→IRAS)
+- **Delete:** Use when the entire provision has no equivalent (e.g., jurisdiction-specific statutes with no target equivalent)
+- **Replace:** Use when adapting content (e.g., regulatory body A → regulatory body B)
 
 **Note:** Delete operations don't generate comments in track changes. Add a comment edit separately if you need to explain the deletion.
 
 ---
 
-## Jurisdiction Conversion Flags
+## Jurisdiction Conversion Guidance
 
-When converting between jurisdictions (e.g., UK to Singapore), content reduction is expected:
-- UK statutes often have more verbose provisions than Singapore equivalents
-- Use `--allow-reduction` flag proactively
+When converting between jurisdictions, content reduction is often expected:
+- Source jurisdiction statutes may be more verbose than target equivalents
+- Use `--allow-reduction` flag proactively when reductions are intentional
 - Use `-q` (quiet) to suppress expected warnings
 
 Example:
@@ -444,6 +444,10 @@ node superdoc-redline.mjs apply --input doc.docx --edits merged.json \
 | **Wrong edit format** | Use `operation` not `type`; use `newText` not `text` |
 | **Partial block text** | `newText` must contain ENTIRE block content |
 | **Misusing diff modes** | `diff: true` for surgical edits only |
+| **Block ID confusion from grep** | Grep line numbers are NOT block IDs - verify against IR |
+| **Large chunk JSON exceeds context** | Use `--format text` or grep within output files |
+| **Output file size bloat** | Always recompress (SuperDoc writes uncompressed) |
+| **Truncated newText** | Use `--strict` to detect; use markdown format for large edits |
 
 ---
 
@@ -504,7 +508,7 @@ The validator may report:
 | Error/Warning | Meaning | Solution |
 |---------------|---------|----------|
 | `missing_field: newText` | Using wrong field name | Use `newText` not `replaceText`/`searchText` |
-| `Significant content reduction` | newText much shorter | Expected for jurisdiction conversion - ignore if intentional |
+| `Significant content reduction` | newText much shorter | Expected for some conversions - ignore if intentional |
 | `Ends with trailing comma` | Only flagged if original doesn't end with comma | If both end with comma, this is valid |
 | `content_corruption` | Garbled text patterns | Check for copy-paste errors |
 
@@ -516,19 +520,19 @@ To find blocks containing specific text, use the `find-block` command:
 
 ```bash
 # Search by text (case-insensitive)
-node superdoc-redline.mjs find-block --input contract.docx --text "VAT"
+node superdoc-redline.mjs find-block --input contract.docx --text "term"
 
 # Search by regex
-node superdoc-redline.mjs find-block --input contract.docx --regex "VAT|HMRC"
+node superdoc-redline.mjs find-block --input contract.docx --regex "term1|term2"
 
 # Search in already-extracted IR (faster for multiple searches)
-node superdoc-redline.mjs find-block --input contract-ir.json --text "VAT"
+node superdoc-redline.mjs find-block --input contract-ir.json --text "term"
 
 # Show more results (default is 20)
-node superdoc-redline.mjs find-block --input contract.docx --text "VAT" --limit 100
+node superdoc-redline.mjs find-block --input contract.docx --text "term" --limit 100
 
 # Show ALL matches (for comprehensive coverage)
-node superdoc-redline.mjs find-block --input contract.docx --text "VAT" --limit all
+node superdoc-redline.mjs find-block --input contract.docx --text "term" --limit all
 ```
 
 **Note:** The default limit of 20 results can miss edits for high-frequency terms. For comprehensive discovery, use `--limit all` to see all occurrences.
@@ -536,117 +540,11 @@ node superdoc-redline.mjs find-block --input contract.docx --text "VAT" --limit 
 Alternatively, use grep or jq on the IR file:
 ```bash
 # Using grep (shows context with block IDs)
-grep -B5 "VAT" contract-ir.json | grep -E '"seqId"|"text"'
+grep -B5 "term" contract-ir.json | grep -E '"seqId"|"text"'
 
 # Using jq (more precise)
-jq '.blocks[] | select(.text | contains("VAT")) | {seqId, text}' contract-ir.json
+jq '.blocks[] | select(.text | contains("term")) | {seqId, text}' contract-ir.json
 ```
-
----
-
-## Jurisdiction-Specific References
-
-For detailed mappings when converting between jurisdictions, see:
-- Internal reference (not published): `tests_and_others/reference/uk-to-singapore.md`
-
-Create similar reference files for other jurisdiction pairs as needed.
-
----
-
-## UK-to-Singapore: Key Conversions
-
-### Statute Mappings
-
-| UK Statute/Concept | Singapore Equivalent | Notes |
-|-------------------|---------------------|-------|
-| Insolvency Act 1986 | IRDA 2018 (Insolvency, Restructuring and Dissolution Act) | Administrator → Judicial Manager |
-| Working Time Regulations 1998 | Employment Act (Cap 91) | |
-| DPA 1998 | PDPA 2012 | Data Protection Act → Personal Data Protection Act |
-| Equality Act 2010 | Employment Act (Cap 91) | Singapore has limited anti-discrimination law |
-| Finance Act (SDLT) | Stamp Duties Act (Cap 312) | SDLT → Stamp Duty |
-| UK Pension Schemes (Finance Act 2004) | CPF Act | HMRC registration → CPF Board |
-| VAT Special Provisions Order 1995 (TOGC) | GST Act s10(1)(b) | Transfer of going concern |
-| PAYE / National Insurance | CPF contributions | |
-| EU Merger Control | DELETE (or Singapore Competition Act) | Singapore not in EU |
-| Land Registry | Singapore Land Authority (SLA) | |
-| Caution against first registration | Caveat (Land Titles Act) | |
-| Local land charges | Caveats/encumbrances (SLA) | |
-| Capital Allowances Act 2001 | Income Tax Act (Cap 134) | |
-| FRS 102 | SFRS(I) | Singapore Financial Reporting Standards |
-
-### Regulatory Body Mappings
-
-| UK Body | Singapore Body | Full Name |
-|---------|---------------|-----------|
-| HMRC | IRAS | Inland Revenue Authority of Singapore |
-| Competition Commission | CCCS | Competition and Consumer Commission of Singapore |
-| Environment Agency | NEA | National Environment Agency |
-| Land Registry | SLA | Singapore Land Authority |
-| ICAEW | ISCA | Institute of Singapore Chartered Accountants |
-
-### TUPE Replacement (Employment Transfer)
-
-UK TUPE provides automatic transfer of employment. Singapore has NO equivalent - transfers require consent.
-
-**UK TUPE (automatic transfer):**
-```
-The Employees shall transfer automatically to the Buyer on the Transfer Date
-pursuant to the Transfer of Undertakings (Protection of Employment) Regulations 2006.
-```
-
-**Singapore (consent-based transfer):**
-```
-The transfer of each Employee to the Buyer shall be conditional upon:
-(a) the Employee's written consent to such transfer; and
-(b) the Buyer's agreement to employ the Employee on terms no less favourable
-than those provided by the Seller immediately prior to the Transfer Date.
-The Seller shall use reasonable endeavours to procure each Employee's consent.
-```
-
----
-
-## Session Learnings
-
-### 4 February 2026 - Asset Purchase Agreement - UK to Singapore
-
-**What worked:**
-- Two-pass workflow identified all UK-specific provisions
-- Validation caught format errors before document corruption
-- 105 edits successfully applied
-
-**Key errors encountered:**
-
-1. **Edit format field name** - Used `"type"` instead of `"operation"`. All edits failed validation.
-
-2. **Block ID confusion from grep** - Grep output line numbers (e.g., `1339:`) were mistaken for block IDs. Always verify block IDs against `blockCount` from stats.
-
-3. **Large chunk handling** - Chunk JSON exceeded 25K tokens. Use `--format text` or grep within output files.
-
-4. **Output file size bloat** - SuperDoc writes DOCX without compression (2.5MB instead of 400KB). Always recompress the output file.
-
-5. **Truncated newText** - LLM output can be truncated, especially for long JSON values. The apply command now validates newText and warns about:
-   - Significant content reduction (> 50%)
-   - Incomplete sentences (ends mid-word)
-   - JSON truncation patterns (trailing comma, unclosed quote)
-   - Garbled content patterns (e.g., "4.3S$")
-
-   Use `--strict` to fail the apply if any warnings are detected.
-
-**Command sequence that works:**
-```bash
-node superdoc-redline.mjs read --input doc.docx --stats-only
-node superdoc-redline.mjs extract --input doc.docx --output doc-ir.json
-node superdoc-redline.mjs validate --input doc.docx --edits edits.json
-node superdoc-redline.mjs apply --input doc.docx --output out.docx --edits edits.json --strict
-# Then recompress (see Step 5 above)
-```
-
-**Apply options:**
-- `--strict` - Treat truncation/corruption warnings as errors (recommended)
-- `--verbose` - Enable detailed logging for debugging
-- `--allow-reduction` - Allow intentional content reduction (for jurisdiction conversions)
-- `--skip-invalid` - Continue applying valid edits even if some fail
-- `-q, --quiet-warnings` - Suppress content reduction warnings
 
 ---
 
@@ -658,7 +556,7 @@ When the apply command reports warnings:
 - If intentional simplification (jurisdiction conversion, removing obsolete provisions): **ACCEPTABLE**
   - Use `--allow-reduction` flag to suppress these warnings
 - If mid-sentence truncation or garbled text: **ERROR** - re-create edit
-- Tip: Don't use `--strict` for jurisdiction conversion work
+- Tip: Don't use `--strict` for conversion work with expected reductions
 
 ### 2. "Possible truncation: ends with..."
 - Check if newText makes grammatical sense
@@ -677,7 +575,7 @@ When the apply command reports warnings:
 |------|----------|
 | `--strict` | General editing, proofreading, minor corrections |
 | NO `--strict` | Jurisdiction conversion, content simplification, provision deletion |
-| `--allow-reduction` | When intentionally shortening content (e.g., UK statutes → Singapore equivalents) |
+| `--allow-reduction` | When intentionally shortening content |
 
 Strict mode exits with code 1 if ANY edit is skipped. For partial success scenarios, omit `--strict`.
 

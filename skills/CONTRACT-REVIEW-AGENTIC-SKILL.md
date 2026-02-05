@@ -9,13 +9,9 @@ description: Orchestrator-subagent methodology for parallel contract review usin
 
 This skill enables **multi-agent contract review** using an orchestrator-subagent architecture. The orchestrator coordinates multiple work partitions working on different sections, then merges their edits.
 
-**Note:** In Claude Code, work partitions execute **sequentially** (not in parallel). The workflow is the same, just not parallelized. The organizational benefits remain: clear separation of concerns, smaller focused edit files, and explicit merge/conflict handling.
+**Prerequisites:** This skill builds on [CONTRACT-REVIEW-SKILL.md](./CONTRACT-REVIEW-SKILL.md). You must understand the core methodology (two-pass workflow, edit formats, Context Document) before using this agentic approach.
 
-**Prerequisites:** Familiarity with **CONTRACT-REVIEW-SKILL.md** (core methodology, edit formats, two-pass workflow).
-
-> **⚠️ Examples Are Illustrative Only**
->
-> Examples use UK → Singapore conversion. The architecture applies to any contract review task.
+**Note:** In Claude Code, work partitions execute **sequentially** (not in parallel). The organizational benefits remain: clear separation of concerns, smaller focused edit files, and explicit merge/conflict handling.
 
 ### When to Use Multi-Agent Workflow
 
@@ -26,7 +22,7 @@ This skill enables **multi-agent contract review** using an orchestrator-subagen
 | 50K - 150K tokens | 2-4 work partitions |
 | > 150K tokens | 4-8 work partitions |
 
-**Note:** Multi-agent workflow provides benefits even for smaller documents:
+**Benefits even for smaller documents:**
 - Organizational clarity (separating definitions from warranties from schedules)
 - Reduced context window pressure
 - Clearer edit attribution and review
@@ -39,27 +35,27 @@ This skill enables **multi-agent contract review** using an orchestrator-subagen
 ┌─────────────────────────────────────────────────────────────────────┐
 │                        ORCHESTRATOR AGENT                           │
 │  - Discovery Pass (read all chunks, build Context Document)         │
-│  - Work decomposition (assign block ranges to work partitions)           │
+│  - Work decomposition (assign block ranges to work partitions)      │
 │  - Merge results and validate                                       │
 └─────────────────────────────────────────────────────────────────────┘
                                  │
                                  ▼
                     ┌─────────────────────────┐
-                    │     WORK PARTITION A         │
+                    │     WORK PARTITION A    │
                     │     b001-b300           │ ──► edits-a.json
                     │     (Definitions)       │
                     └─────────────────────────┘
                                  │
                                  ▼
                     ┌─────────────────────────┐
-                    │     WORK PARTITION B         │
+                    │     WORK PARTITION B    │
                     │     b301-b600           │ ──► edits-b.json
                     │     (Provisions)        │
                     └─────────────────────────┘
                                  │
                                  ▼
                     ┌─────────────────────────┐
-                    │     WORK PARTITION C         │
+                    │     WORK PARTITION C    │
                     │     b601-b900           │ ──► edits-c.json
                     │     (Warranties)        │
                     └─────────────────────────┘
@@ -70,8 +66,6 @@ This skill enables **multi-agent contract review** using an orchestrator-subagen
                     │    → APPLY              │
                     └─────────────────────────┘
 ```
-
-**Note:** In Claude Code, work partitions execute sequentially as shown. The organizational structure provides the same benefits as parallel execution.
 
 ---
 
@@ -95,21 +89,20 @@ node superdoc-redline.mjs read --input contract.docx --chunk 0 --max-tokens 1000
 
 ### Step 1.3: Build Context Document
 
-See CONTRACT-REVIEW-SKILL.md for Context Document template. For agentic workflow, add:
+See [CONTRACT-REVIEW-SKILL.md](./CONTRACT-REVIEW-SKILL.md) for the Context Document template. For agentic workflow, add:
 
 ```markdown
-## Sub-Agent Assignments
-| Agent | Block Range | Section | Key Tasks |
-|-------|-------------|---------|-----------|
+## Work Partition Assignments
+| Partition | Block Range | Section | Key Tasks |
+|-----------|-------------|---------|-----------|
 | A | b001-b300 | Definitions | Term changes, deletions |
-| B | b301-b600 | Provisions | Tax provisions |
-| C | b601-b900 | Warranties | Employment, general |
+| B | b301-b600 | Provisions | Core provisions |
+| C | b601-b900 | Warranties | Warranties, schedules |
 
-## Items Requiring DELETE (with assigned agent)
-| Term | Block | Assigned Agent |
-|------|-------|----------------|
-| TULRCA | b257 | Agent A |
-| TUPE | b258 | Agent A |
+## Items Requiring DELETE (with assigned partition)
+| Term | Block | Assigned Partition |
+|------|-------|-------------------|
+| [Term] | b### | A |
 ```
 
 ---
@@ -118,13 +111,13 @@ See CONTRACT-REVIEW-SKILL.md for Context Document template. For agentic workflow
 
 ### Block Range Assignment Best Practices
 
-> **⚠️ Critical Lesson Learned (5 February 2026)**
+> **⚠️ Critical: Clause-Type Distribution**
 >
-> In a UK→Singapore asset purchase adaptation, the "boilerplate" agent was assigned blocks b1231-b1317, but the governing law clauses it needed to edit were actually at b651, b658, b680, b681. The sequential block assignment didn't account for where clause types were actually located.
+> Block numbers are sequential through the document, but clause types are NOT. Definitions may reference governing law; warranties may contain jurisdiction-specific terms; schedules may duplicate main document provisions.
 >
-> **Key insight:** Block numbers are sequential through the document, but clause types are not necessarily sequential. Definitions may reference governing law; warranties may contain jurisdiction-specific terms; schedules may duplicate main document provisions.
+> **Never assign ranges purely by sequential position.** First map clause types to actual block locations during discovery.
 
-### Discovery-First Assignment (Recommended)
+### Discovery-First Assignment (Required)
 
 Before assigning ranges, the orchestrator MUST map clause types to actual block locations:
 
@@ -136,83 +129,63 @@ Before assigning ranges, the orchestrator MUST map clause types to actual block 
 | Definitions | b001-b300 | Clause 1 |
 | Governing Law | b651, b658, b680, b681 | Clause 24 |
 | Jurisdiction | b682-b695 | Clause 25 |
-| TUPE/Employment | b450-b480, b720-b750 | Clauses 12, Schedule 4 |
+| Employment | b450-b480, b720-b750 | Clauses 12, Schedule 4 |
 | Tax Provisions | b380-b420, b850-b900 | Clauses 9, Schedule 7 |
 | Boilerplate | b1100-b1200 | Clauses 26-30 |
 ```
 
-Then assign agents by **clause type grouping**, not sequential ranges:
+Then assign partitions by **clause type grouping**, not sequential ranges:
 
 ```markdown
-## Agent Assignments (By Clause Type)
+## Partition Assignments (By Clause Type)
 
-### Agent A: Definitions & Terms
+### Partition A: Definitions & Terms
 - Blocks: b001-b300
 - Also: Any blocks referencing defined terms
 - Output: edits-definitions.json
 
-### Agent B: Jurisdiction-Sensitive Clauses
+### Partition B: Jurisdiction-Sensitive Clauses
 - Blocks: b651, b658, b680-b695, b1100-b1150
 - Includes: Governing law, jurisdiction, service of process
 - Output: edits-jurisdiction.json
 
-### Agent C: Employment & TUPE
+### Partition C: Employment & Related
 - Blocks: b450-b480, b720-b750
-- Includes: TUPE references wherever they appear
+- Includes: Employment provisions wherever they appear
 - Output: edits-employment.json
 ```
 
 ### Assignment Strategies
 
-**Clause-Type Based (Recommended):** Group blocks by legal clause type, even if non-contiguous. The orchestrator must identify all locations of each clause type during discovery.
+| Strategy | Description | Best For |
+|----------|-------------|----------|
+| **Clause-Type Based** (Recommended) | Group blocks by legal clause type, even if non-contiguous | Complex amendments, jurisdiction conversions |
+| **Section-Based** | Assign contiguous block ranges by document structure | Simple documents with clear section boundaries |
+| **Topic-Based** | Assign specific amendment categories across document | Focused amendments (e.g., "only tax provisions") |
 
-**Section-Based:** Assign contiguous block ranges based on document structure. Simpler but risks missing related clauses in different sections.
+### Include Buffer Zones for Discovery
 
-**Topic-Based:** Assign specific amendment categories across the document (e.g., "only tax provisions"). Requires thorough discovery to identify all relevant blocks.
-
-### Include Overlap Buffer Zones
-
-When clause boundaries are ambiguous, include buffer zones:
-
-```markdown
-### Agent A: Definitions (b001-b320)
-- Core range: b001-b300
-- Buffer: b301-b320 (may contain late definitions)
-
-### Agent B: Core Provisions (b290-b620)
-- Buffer: b290-b310 (overlap with definitions)
-- Core range: b311-b600
-- Buffer: b601-b620 (may contain provision spillover)
-```
-
-Use `-c first` or `-c last` conflict strategy during merge to handle overlaps.
-
-### Example Assignments (Improved)
+When clause boundaries are ambiguous, include buffer zones for discovery (not for edits):
 
 ```markdown
-### Agent A: Definitions (b001-b300)
-- **Also check**: b651 (may contain "Business Day" jurisdiction refs)
-- Output: edits-definitions.json
+### Partition A: Definitions
+- Discovery range: b001-b320 (includes buffer)
+- Edit range: b001-b300 (strict, no overlap)
 
-### Agent B: Core Provisions (b301-b600)
-- Output: edits-provisions.json
-
-### Agent C: Warranties & Schedules (b601-b900)
-- **Also check**: Governing law at b651, b658 if not assigned elsewhere
-- Output: edits-warranties.json
-
-### Agent D: Boilerplate & Jurisdiction (b901-b1200)
-- **Critical blocks**: b651, b658, b680, b681 (governing law/jurisdiction)
-- Output: edits-boilerplate.json
+### Partition B: Provisions
+- Discovery range: b280-b620 (includes buffer)
+- Edit range: b301-b600 (strict, no overlap)
 ```
+
+**Final edit files must have NON-OVERLAPPING block assignments.** Use `-c error` during merge to catch accidental overlaps.
 
 ### Anti-Pattern: Sequential-Only Assignment
 
 ❌ **Don't do this:**
 ```markdown
-Agent A: b001-b400
-Agent B: b401-b800
-Agent C: b801-b1200
+Partition A: b001-b400
+Partition B: b401-b800
+Partition C: b801-b1200
 ```
 
 This ignores clause type distribution and will miss edits when:
@@ -222,14 +195,14 @@ This ignores clause type distribution and will miss edits when:
 
 ---
 
-## Phase 3: Spawn Sub-Agents
+## Phase 3: Spawn Work Partitions
 
 Each work partition receives:
 1. The **Context Document** (global context)
 2. Their **assigned block range**
 3. **Specific instructions**
 
-### Sub-Agent Prompt Template
+### Work Partition Prompt Template
 
 ```markdown
 You are a contract review work partition.
@@ -267,33 +240,16 @@ You are a contract review work partition.
 Report: edit count, deletions made, compound terms changed, any issues.
 ```
 
-### Spawning Sub-Agents
+### Execution in Claude Code
 
-> **⚠️ Multi-Agent Workflow (February 2026)**
->
-> Claude Code executes work partitions **sequentially** (not in parallel). The organizational benefit is:
-> - Clear separation of concerns (definitions, provisions, warranties)
-> - Smaller, focused edit files easier to validate
-> - Merge command consolidates with conflict detection
->
-> This is NOT a "simulation" - it's the actual workflow, just sequential rather than parallel.
->
-> 1. Work on Agent A's block range → create `edits-definitions.json`
-> 2. Work on Agent B's block range → create `edits-provisions.json`
-> 3. Work on Agent C's block range → create `edits-warranties.json`
-> 4. Merge all files together
+Work partitions execute sequentially:
 
-**For environments with parallel task support:**
-```javascript
-Promise.all([
-  Task({ prompt: agentAPrompt, description: "Definitions" }),
-  Task({ prompt: agentBPrompt, description: "Provisions" }),
-  Task({ prompt: agentCPrompt, description: "Warranties" })
-]);
-```
+1. Work on Partition A's block range → create `edits-definitions.json`
+2. Work on Partition B's block range → create `edits-provisions.json`
+3. Work on Partition C's block range → create `edits-warranties.json`
+4. Merge all files together
 
-**Empty Edit Files Are Valid:**
-If a work partition's block range contains no UK-specific content requiring changes, an empty edit file is acceptable. Core provisions (sale, consideration, completion) often use defined terms without directly citing statutes, so changes at the definition level handle the conversion.
+**Empty Edit Files Are Valid:** If a work partition's block range contains no content requiring changes, an empty edit file is acceptable.
 
 ---
 
@@ -316,13 +272,14 @@ node superdoc-redline.mjs merge \
 ```
 
 **Conflict strategies:**
-- `error` - **Recommended.** Fail if any conflicts. Forces you to review overlapping edits.
-- `first` - Keep first edit (by file order)
-- `last` - Keep last edit (by file order)
-- `combine` - Merge comments; use `first` for other operations. **Caution:** May silently pick truncated edits.
+| Strategy | Behavior | Use Case |
+|----------|----------|----------|
+| `error` | **Recommended.** Fail on conflicts | Forces manual review of overlapping edits |
+| `first` | Keep first edit (by file order) | When file order represents priority |
+| `last` | Keep last edit (by file order) | When later files should override |
+| `combine` | Merge comments; use `first` for other ops | **Caution:** May keep truncated edits |
 
-> **⚠️ Why `-c error` is now recommended:**
-> Previous guidance recommended `-c combine`, but investigation found this can silently keep truncated or corrupt edits when two agents edit the same block. Use `-c error` to detect conflicts, then resolve manually.
+> **⚠️ Why `-c error` is recommended:** The `combine` strategy can silently keep truncated or corrupt edits when two partitions edit the same block. Use `-c error` to detect conflicts, then resolve manually.
 
 ### Step 4.3: Pre-Apply Verification
 
@@ -337,19 +294,16 @@ node superdoc-redline.mjs validate --input contract.docx --edits merged-edits.js
 node superdoc-redline.mjs apply -i contract.docx -o amended.docx -e merged-edits.json --strict
 ```
 
-**New apply options:**
-- `--strict` - Treat truncation/corruption warnings as errors. Recommended for production.
-- `--verbose` - Enable detailed logging for debugging position mapping issues.
-
-The apply command now validates `newText` for:
-- Significant truncation (content reduction > 50%)
-- Incomplete sentences (ends mid-word)
-- JSON truncation patterns (trailing comma, unclosed quote)
-- Garbled content patterns (e.g., "4.3S$" suggesting corruption)
+**Apply options:**
+- `--strict` - Treat truncation/corruption warnings as errors (recommended)
+- `--verbose` - Enable detailed logging for debugging
+- `--allow-reduction` - Allow intentional content reduction
+- `--skip-invalid` - Continue applying valid edits even if some fail
+- `-q, --quiet-warnings` - Suppress content reduction warnings
 
 ### Step 4.5: Recompress Output File
 
-**⚠️ SuperDoc writes uncompressed DOCX files (~6x larger).** See CONTRACT-REVIEW-SKILL.md "Step 5: Recompress Output File" for the recompression script.
+**⚠️ SuperDoc writes uncompressed DOCX files (~6x larger).** See [CONTRACT-REVIEW-SKILL.md](./CONTRACT-REVIEW-SKILL.md) "Step 5: Recompress Output File".
 
 ---
 
@@ -359,27 +313,27 @@ The apply command now validates `newText` for:
 ### Phase 1: Discovery
 - [ ] Get stats, extract IR
 - [ ] Read ALL chunks
-- [ ] Build Context Document with work partition assignments
-- [ ] Identify all DELETEs and assign to agents
+- [ ] Build Context Document with partition assignments
+- [ ] Identify all DELETEs and assign to partitions
+- [ ] Build clause location map
 
 ### Phase 2: Decomposition
-- [ ] Define block ranges (non-overlapping)
+- [ ] Define block ranges by clause type (non-overlapping for edits)
 - [ ] Prepare work partition prompts
 
-### Phase 3: Spawn
-- [ ] Launch all work partitions in parallel
+### Phase 3: Execute
+- [ ] Process all work partitions
 - [ ] Each has Context Document + block range
 
 ### Phase 4: Collect
-- [ ] Wait for all agents
-- [ ] Verify each reported their DELETEs and compound terms
+- [ ] Verify each partition reported DELETEs and compound terms
 
 ### Phase 5: Merge & Apply
-- [ ] Merge all edits
+- [ ] Merge all edits with -c error
 - [ ] Pre-apply verification
 - [ ] Validate
 - [ ] Apply
-- [ ] Recompress output file (SuperDoc writes uncompressed)
+- [ ] Recompress output file
 - [ ] Post-apply verification
 ```
 
@@ -390,7 +344,7 @@ The apply command now validates `newText` for:
 Work partitions must respect constraints from the Context Document:
 
 1. **Defined Terms Consistency** - Apply changes from "Terms to Change" table
-2. **Citation Format** - Use consistent format (e.g., Singapore statutes by year)
+2. **Citation Format** - Use consistent format for statute references
 3. **Delete-and-Insert** - When deleting, assess if insertion needed
 4. **Cross-Reference Preservation** - Don't break clause references
 
@@ -410,124 +364,32 @@ Work partitions must respect constraints from the Context Document:
 
 > **⚠️ Prompt Too Long Failures**
 >
-> 15% of multi-agent review iterations failed with "Prompt is too long" during the orchestration phase. This occurs when the Context Document becomes too large.
+> Multi-agent review can fail with "Prompt is too long" during orchestration when the Context Document becomes too large.
 
 ### Prevention Strategies
 
-**1. Summarize Context Document Before Spawning Sub-Agents**
+**1. Summarize Context Document for Work Partitions**
 ```markdown
-## Condensed Context for Sub-Agents
+## Condensed Context for Work Partitions
 
-### Key Term Mappings (for all agents)
+### Key Term Mappings (for all partitions)
 | Original | New |
 |----------|-----|
-| VAT | GST |
-| HMRC | IRAS |
-| Companies Act 2006 | Companies Act 1967 |
+| [Term A] | [New A] |
+| [Term B] | [New B] |
 
-### Agent-Specific Assignments
-[Only include blocks relevant to this agent]
+### Partition-Specific Assignments
+[Only include blocks relevant to this partition]
 ```
 
-**2. Limit Sub-Agent Context**
+**2. Limit Work Partition Context**
 Work partitions receive only:
 - Their assigned block range
 - Term mappings relevant to that range
-- NOT the full Context Document with all 14 chunks summarized
+- NOT the full Context Document with all chunks summarized
 
 **3. For Documents >100K Tokens**
 Consider running orchestrator and work partitions as separate sessions to avoid context accumulation.
-
----
-
-## Performance Tips
-
-- In environments with parallel task support, spawn ALL work partitions simultaneously
-- Use 10K token chunks for thorough review
-- Markdown format for large edit sets (more reliable than JSON)
-- For very large documents, consider batching work partition prompts to avoid context limits
-
----
-
-## Expected Edit Ranges (UK-to-Singapore Conversion)
-
-| Document Type | Blocks | Expected Edits | Notes |
-|--------------|--------|----------------|-------|
-| Asset Purchase Agreement | 1000-1500 | 60-100 | Definitions, warranties, schedules |
-| Share Purchase Agreement | 800-1200 | 50-80 | Similar to APA |
-| Employment Contract | 200-400 | 15-30 | TUPE, PAYE/CPF focus |
-| Lease Agreement | 500-800 | 30-50 | Property law focus |
-
-**Coverage Indicators:**
-- < 40 edits for 1000+ block document: Likely incomplete discovery
-- > 80 edits: Comprehensive coverage
-- 105+ edits: Exhaustive (every term instance changed)
-
-**Key:** More time in discovery phase = higher edit counts.
-
----
-
-## Discovery Phase Checklist
-
-**Before creating ANY edits, the discovery pass MUST complete:**
-
-- [ ] All chunks read (not just first few)
-- [ ] All defined terms listed with block IDs
-- [ ] All UK statutes mapped to Singapore equivalents
-- [ ] All regulatory body names identified
-- [ ] Schedule-by-schedule review completed
-- [ ] Clause location map built (clause types → block ranges)
-
-**Agent C (Schedules/Warranties) typically has 40-60% of all edits.** Under-investment in schedule discovery is the primary cause of low edit counts.
-
----
-
-## Buffer Zones vs Non-Overlapping Assignments
-
-**Buffer zones are for DISCOVERY only** - knowing what's in adjacent sections.
-
-**Final edit files must have NON-OVERLAPPING block assignments:**
-- Use `-c error` during merge to catch accidental overlaps
-- If conflict detected, one agent removes their edit for that block
-
-**Example:**
-```markdown
-### Agent A: Definitions
-- Discovery range: b001-b320 (includes buffer)
-- Edit range: b001-b300 (strict, no overlap)
-
-### Agent B: Provisions
-- Discovery range: b280-b620 (includes buffer)
-- Edit range: b301-b600 (strict, no overlap)
-```
-
----
-
-## Session Learnings
-
-### 5 February 2026 - Multi-Agent UK→Singapore Adaptation
-
-**Issue discovered:** Sequential block range assignment caused the "boilerplate" agent (assigned b1231-b1317) to miss governing law clauses that were actually located at b651, b658, b680, b681.
-
-**Root cause:** Block ranges were assigned by sequential document position rather than by clause type. Legal documents don't have clause types in sequential order - governing law can appear in definitions, main provisions, and schedules.
-
-**Solution implemented:** Added "Block Range Assignment Best Practices" section to this document with:
-1. Discovery-first mapping of clause types to block locations
-2. Clause-type based assignment (not sequential)
-3. Overlap buffer zones for ambiguous boundaries
-
-**Also fixed in superdoc-redlines library:**
-- Added `normalizeEdit()` function for field name normalization
-- Added field validation to `validateMergedEdits()`
-- Added `--normalize` flag to merge command
-- Added `--skip-invalid` flag to apply command
-- Added `--quiet-warnings` flag to apply command
-
-### 4 February 2026 - Asset Purchase Agreement
-
-**Key insight:** The single-agent approach worked well for this 143K token document. Work partitions would help for documents >200K tokens or when multiple reviewers need to work in parallel.
-
-**Shared learnings** (edit format, block ID confusion, etc.) documented in CONTRACT-REVIEW-SKILL.md.
 
 ---
 
@@ -540,7 +402,7 @@ Before creating edits for a block:
 
 ```bash
 # Find blocks containing specific text
-node superdoc-redline.mjs find-block --input contract.docx --text "VAT"
+node superdoc-redline.mjs find-block --input contract.docx --text "term"
 
 # Or use grep on IR file
 grep -B2 "expected text" contract-ir.json
@@ -548,7 +410,7 @@ grep -B2 "expected text" contract-ir.json
 
 Block IDs can be off by 5-10 positions from estimates. **Always verify.**
 
-### Best Practices for Sub-Agents
+### Best Practices for Work Partitions
 
 1. **Before creating any edit**, verify the block exists and contains expected text
 2. **Use find-block command** when uncertain about block locations
@@ -557,53 +419,42 @@ Block IDs can be off by 5-10 positions from estimates. **Always verify.**
 
 ---
 
-## UK-to-Singapore: Employment Law
+## Coverage Verification Checklist
 
-UK TUPE (Transfer of Undertakings) has **NO Singapore equivalent**.
-
-### Correct Adaptation
-
-1. **DELETE definitions:** b257 (TULRCA), b258 (TUPE)
-2. **REPLACE mentions:** "TUPE" → "the transfer arrangements contemplated by this agreement"
-3. **REMOVE** automatic transfer assumptions
-4. **ADD** consent-based transfer language where needed
-
-Singapore Employment Act covers basic terms but NOT automatic transfer of employment.
-
----
-
-## Comprehensive Coverage Checklist
-
-For jurisdiction conversion, ensure ALL of the following are edited:
+For comprehensive reviews, **draft a Coverage Verification Checklist** specific to your amendment task. This checklist should include:
 
 ### Definitions Section
-- [ ] All UK statute definitions replaced with Singapore equivalents
-- [ ] All UK agency definitions replaced
-- [ ] All UK-specific terms deleted if no equivalent
+- [ ] All source-specific statute definitions identified
+- [ ] Replacement statute definitions drafted
+- [ ] Terms with no equivalent flagged for deletion
 
 ### Throughout Document (trace every usage)
-- [ ] Every "VAT" → "GST" (not just definitions)
-- [ ] Every "HMRC" → "IRAS"
-- [ ] Every UK statute reference
-- [ ] Every UK agency reference
+- [ ] Every instance of [Source Term A] → [Target Term A]
+- [ ] Every instance of [Source Term B] → [Target Term B]
+- [ ] Every source statute reference updated
+- [ ] Every source regulatory body reference updated
 
-### Deletion Candidates (UK-only, no Singapore equivalent)
-- [ ] Inheritance tax provisions (Singapore abolished estate duty 2008)
-- [ ] TUPE automatic transfer clauses
-- [ ] UK/EU merger control thresholds
-- [ ] UK Planning Acts specific references
+### Deletion Candidates
+- [ ] Provisions with no target equivalent identified
+- [ ] Automatic transfer provisions (if target requires consent)
+- [ ] Source-specific regulatory provisions
 
 ### Post-Apply Verification
-Run: `grep -i "UK\|England\|Wales\|HMRC\|VAT\|TUPE" amended-contract.docx`
-Any hits indicate missed edits.
+```bash
+# Run grep for residual source terms
+grep -i "[SOURCE_TERM_1]\|[SOURCE_TERM_2]" amended-contract.docx
+# Any unexpected hits indicate missed edits
+```
+
+**Key:** Invest in schedule and appendix discovery - these sections often duplicate main document provisions and contain additional instances of terms requiring change.
 
 ---
 
 ## Reference
 
-- **Core methodology:** CONTRACT-REVIEW-SKILL.md
+- **Core methodology:** [CONTRACT-REVIEW-SKILL.md](./CONTRACT-REVIEW-SKILL.md)
 - **Edit format:** See "Edit File Format Reference" in CONTRACT-REVIEW-SKILL.md
-- **Jurisdiction mappings:** Internal reference (not published): `tests_and_others/reference/uk-to-singapore.md`
+- **Tool documentation:** [SKILL.md](../SKILL.md) and [README.md](../README.md)
 
 ---
 
