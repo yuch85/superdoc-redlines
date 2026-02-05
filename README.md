@@ -158,6 +158,8 @@ node superdoc-redline.mjs apply -i doc.docx -o out.docx -e edits.json --strict  
 | `-q, --quiet-warnings` | Suppress content reduction warnings |
 | `--allow-reduction` | Allow intentional content reduction without warnings (for jurisdiction conversions) |
 
+**Content reduction:** A replace edit where `newText` is significantly shorter than the original block. This can be intentional (simplification) or a sign of truncation/corruption. Do **not** allow reduction for normal proofreading or minor edits where text length should stay similar.
+
 **Validation:**
 
 The apply command automatically validates edits before applying, including:
