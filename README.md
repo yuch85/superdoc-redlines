@@ -10,7 +10,7 @@ Designed for use by AI agents (Claude, GPT, etc.) in IDE environments like Curso
   </a>
 </p>
 
-<p align="center"><em><small>Multi-agentic contract review of a 100+ page contract using Claude Code, using this library and the <a href="./skills/CONTRACT-REVIEW-AGENTIC-SKILL.md">CONTRACT-REVIEW-AGENTIC-SKILL.md</a> workflow — no cropping so you can see the actual time to review.</small></em></p>
+<p align="center"><em><small>Multi-agentic contract review of a 100+ page contract using Claude Code, using this library and the <a href="./skills/CONTRACT-REVIEW-AGENTIC-SKILL.md">CONTRACT-REVIEW-AGENTIC-SKILL.md</a> workflow — no trimming so you can see the actual time to review.</small></em></p>
 
 > **For AI Agents:** See [SKILL.md](./SKILL.md) for the concise task-oriented guide with decision flows, constraints, and expected outputs.
 
