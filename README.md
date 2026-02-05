@@ -676,6 +676,34 @@ node superdoc-redline.mjs merge edits1.json edits2.json --output merged.json
 
 ---
 
+## Known Issues and Workarounds
+
+### Output File Size (Uncompressed DOCX)
+
+**Issue:** Output DOCX files are ~6x larger than expected (~2.5MB instead of ~400KB).
+
+**Cause:** The JSZip library uses `ZIP_STORED` (no compression) by default.
+
+**Workaround:** Recompress the output file. See [CONTRACT-REVIEW-SKILL.md](./skills/CONTRACT-REVIEW-SKILL.md) "Step 5: Recompress Output File" for a Python script.
+
+### recommendedChunks Calculation
+
+**Issue:** The `--stats-only` output may show `recommendedChunks: 1` for documents that actually require multiple chunks.
+
+**Cause:** The calculation uses a larger default chunk size than the skill-mandated 10K tokens.
+
+**Workaround:** Ignore `recommendedChunks` and always use `--max-tokens 10000` for thorough review, or calculate chunks manually: `estimatedTokens / 10000`.
+
+### Track Changes IR Extraction
+
+**Issue:** When extracting IR from an amended document (with track changes), both deleted and inserted text appear concatenated.
+
+**Cause:** Track changes preserves deleted text in the document structure; IR extraction captures all text content.
+
+**This is expected behavior.** To get only the final text, open the DOCX in Word, accept all changes, save, then re-extract.
+
+---
+
 ## Testing
 
 ```bash

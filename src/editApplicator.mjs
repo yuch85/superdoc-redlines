@@ -352,6 +352,19 @@ export async function applyEdits(inputPath, outputPath, editConfig, options = {}
     exportOptions.comments = results.comments;
   }
 
+  // Step 6.5: Reset cursor position to avoid TextSelection warning
+  // ProseMirror warns when the selection points to an invalid position after bulk edits.
+  // Setting the cursor to position 1 (start of document) ensures a valid selection state.
+  try {
+    if (editor.commands && editor.commands.setTextSelection) {
+      editor.commands.setTextSelection(1);
+    } else if (editor.commands && editor.commands.blur) {
+      editor.commands.blur();
+    }
+  } catch (e) {
+    // Ignore selection errors - they don't affect document output
+  }
+
   const exportedBuffer = await editor.exportDocx(exportOptions);
   await writeFile(outputPath, Buffer.from(exportedBuffer));
 

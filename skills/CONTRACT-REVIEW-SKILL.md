@@ -254,6 +254,23 @@ node superdoc-redline.mjs apply \
 
 Search output for residual terms that should have been changed. If found, create additional edits and re-apply.
 
+#### Coverage Verification (Recommended)
+
+For comprehensive reviews, verify coverage by counting term occurrences:
+
+```bash
+# Count occurrences of a term in the original IR
+grep -c 'VAT' contract-ir.json
+
+# Your edit count for VAT->GST should match or exceed this count
+# If original has 50 VAT references and you have 45 VAT->GST edits, review for missed blocks
+```
+
+**Coverage Thresholds:**
+- **>90% coverage required** - For defined term replacements (VAT->GST, HMRC->IRAS)
+- **100% coverage required** - For jurisdiction changes (England->Singapore)
+- **Acceptable gaps** - Blocks within deleted sections don't need edits
+
 ### Step 5: Recompress Output File
 
 **⚠️ The SuperDoc library writes DOCX files without compression**, resulting in files ~6x larger than expected. Recompress to reduce file size:
@@ -288,6 +305,28 @@ EOF
 | Before | After | Reason |
 |--------|-------|--------|
 | ~2.5MB | ~400KB | SuperDoc uses `Stored` (0% compression); recompress uses `Deflate` (80-90%) |
+
+---
+
+## Understanding Track Changes Mode
+
+When applying edits with superdoc-redlines, the output DOCX uses **track changes** (revisions):
+
+| Operation | What Happens | How It Appears in Word |
+|-----------|--------------|------------------------|
+| **Replace** | Old text marked deleted, new text inserted | Old = strikethrough, New = underlined |
+| **Delete** | Text marked as deleted (not physically removed) | Text appears with strikethrough |
+| **Insert** | New block added with insertion mark | New text appears underlined |
+
+### Key Implications
+
+1. **Deleted text still appears in IR extraction** - Because track changes preserves deleted content, extracting IR from an amended document will show BOTH old and new text concatenated.
+
+2. **Post-apply grep finds "deleted" terms** - If you grep for "VAT" in the amended IR, you'll find it because the deleted VAT text is preserved. This is expected behavior.
+
+3. **To verify deletions, open in Word** - Use Microsoft Word's Review > Track Changes to see deletions with strikethrough.
+
+4. **Accept changes for clean extraction** - To get IR with only the final text, open the DOCX in Word, accept all changes, save, then re-extract.
 
 ---
 

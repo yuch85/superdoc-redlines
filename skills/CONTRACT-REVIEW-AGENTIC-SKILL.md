@@ -247,8 +247,21 @@ You are a contract review sub-agent.
 Report: edit count, deletions made, compound terms changed, any issues.
 ```
 
-### Spawning in Parallel
+### Spawning Sub-Agents
 
+> **⚠️ Claude Code Note (February 2026)**
+>
+> Claude Code does not support parallel sub-agent spawning via `Promise.all([Task(...)])`.
+> Instead, simulate the multi-agent workflow by creating separate edit files sequentially:
+>
+> 1. Work on Agent A's block range → create `edits-definitions.json`
+> 2. Work on Agent B's block range → create `edits-provisions.json`
+> 3. Work on Agent C's block range → create `edits-warranties.json`
+> 4. Merge all files together
+>
+> The organizational value of decomposition (separating by clause type) remains beneficial even without actual parallelization.
+
+**For environments with parallel task support:**
 ```javascript
 Promise.all([
   Task({ prompt: agentAPrompt, description: "Definitions" }),
@@ -256,6 +269,9 @@ Promise.all([
   Task({ prompt: agentCPrompt, description: "Warranties" })
 ]);
 ```
+
+**Empty Edit Files Are Valid:**
+If a sub-agent's block range contains no UK-specific content requiring changes, an empty edit file is acceptable. Core provisions (sale, consideration, completion) often use defined terms without directly citing statutes, so changes at the definition level handle the conversion.
 
 ---
 
@@ -368,11 +384,46 @@ Sub-agents must respect constraints from the Context Document:
 
 ---
 
+## Context Management for Large Documents
+
+> **⚠️ Prompt Too Long Failures**
+>
+> 15% of multi-agent review iterations failed with "Prompt is too long" during the orchestration phase. This occurs when the Context Document becomes too large.
+
+### Prevention Strategies
+
+**1. Summarize Context Document Before Spawning Sub-Agents**
+```markdown
+## Condensed Context for Sub-Agents
+
+### Key Term Mappings (for all agents)
+| Original | New |
+|----------|-----|
+| VAT | GST |
+| HMRC | IRAS |
+| Companies Act 2006 | Companies Act 1967 |
+
+### Agent-Specific Assignments
+[Only include blocks relevant to this agent]
+```
+
+**2. Limit Sub-Agent Context**
+Sub-agents receive only:
+- Their assigned block range
+- Term mappings relevant to that range
+- NOT the full Context Document with all 14 chunks summarized
+
+**3. For Documents >100K Tokens**
+Consider running orchestrator and sub-agents as separate sessions to avoid context accumulation.
+
+---
+
 ## Performance Tips
 
-- Spawn ALL sub-agents simultaneously (parallel, not sequential)
+- In environments with parallel task support, spawn ALL sub-agents simultaneously
 - Use 10K token chunks for thorough review
 - Markdown format for large edit sets (more reliable than JSON)
+- For very large documents, consider batching sub-agent prompts to avoid context limits
 
 ---
 
