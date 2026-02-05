@@ -1,12 +1,3 @@
----
-name: superdoc-redlines
-type: reference-documentation
-description: Node.js CLI tool for applying tracked changes and comments to DOCX files
-version: 0.2.0
-agent_doc: SKILL.md
-commands: [extract, read, validate, apply, merge, parse-edits, to-markdown, find-block, recompress]
----
-
 # superdoc-redlines
 
 A Node.js CLI tool for applying tracked changes and comments to DOCX files using [SuperDoc](https://superdoc.dev) in headless mode.
@@ -32,6 +23,8 @@ Designed for use by AI agents (Claude, GPT, etc.) in IDE environments like Curso
 ## Installation
 
 ```bash
+git clone https://github.com/yuch85/superdoc-redlines
+cd superdoc-redlines
 npm install
 ```
 

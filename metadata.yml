@@ -1,0 +1,15 @@
+name: superdoc-redlines
+type: reference-documentation
+description: Node.js CLI tool for applying tracked changes and comments to DOCX files
+version: 0.2.0
+agent_doc: SKILL.md
+commands:
+  - extract
+  - read
+  - validate
+  - apply
+  - merge
+  - parse-edits
+  - to-markdown
+  - find-block
+  - recompress
