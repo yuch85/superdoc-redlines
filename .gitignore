@@ -18,6 +18,10 @@ Thumbs.db
 *.log
 npm-debug.log*
 
+# Debug and test artifacts (kept locally, omitted from publication)
+tests_and_others/
+tests/
+
 # Build artifacts
 dist/
 build/

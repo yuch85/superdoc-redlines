@@ -1,0 +1,127 @@
+{
+  "version": "0.2.0",
+  "agent": "vat-tax-agent",
+  "blockRange": { "start": "b427", "end": "b500" },
+  "edits": [
+    {
+      "blockId": "b427",
+      "type": "replace",
+      "original": "Value added tax",
+      "replacement": "Goods and services tax",
+      "diff": true,
+      "rationale": "Replace UK VAT clause heading with Singapore GST equivalent"
+    },
+    {
+      "blockId": "b429",
+      "type": "replace",
+      "original": "the Buyer under this agreement are exclusive of VAT and the Buyer shall in addition pay an amount equal to any VAT chargeable on those sums or consideration; and",
+      "replacement": "the Buyer under this agreement are exclusive of GST and the Buyer shall in addition pay an amount equal to any GST chargeable on those sums or consideration; and",
+      "diff": true,
+      "rationale": "Replace VAT with GST (Goods and Services Tax) for Singapore jurisdiction"
+    },
+    {
+      "blockId": "b430",
+      "type": "replace",
+      "original": "the Seller under this agreement are exclusive of VAT and the Seller shall in addition pay an amount equal to any VAT chargeable on those sums or consideration.",
+      "replacement": "the Seller under this agreement are exclusive of GST and the Seller shall in addition pay an amount equal to any GST chargeable on those sums or consideration.",
+      "diff": true,
+      "rationale": "Replace VAT with GST for Singapore jurisdiction"
+    },
+    {
+      "blockId": "b431",
+      "type": "replace",
+      "original": "The Seller and the Buyer intend that article 5 of the Value Added Tax (Special Provisions) Order 1995 (SI 1995/1268) shall apply to the sale of the Assets under this agreement and agree to use all reasonable endeavours to secure that the sale is treated as neither a supply of goods nor a supply of services under that article [but neither the Seller nor the Buyer shall be required to make any appeal to any tribunal or court against any determination by HMRC that the sale, or any part, shall not be treated as such]. ",
+      "replacement": "The Seller and the Buyer intend that the transfer of the Business shall qualify as a transfer of a going concern under paragraph 3 of the Sixth Schedule to the Goods and Services Tax Act 1993 and agree to use all reasonable endeavours to secure that the sale is treated as neither a supply of goods nor a supply of services [but neither the Seller nor the Buyer shall be required to make any appeal to any tribunal or court against any determination by IRAS that the sale, or any part, shall not be treated as such]. ",
+      "diff": true,
+      "rationale": "Replace UK TOGC provisions (article 5 of VAT Special Provisions Order 1995) with Singapore TOGC provisions (paragraph 3 of Sixth Schedule to GST Act 1993). Replace HMRC with IRAS."
+    },
+    {
+      "blockId": "b432",
+      "type": "replace",
+      "original": "If HMRC, at any time, determines in writing that VAT is payable on the sale of all or some of the Assets, the Seller shall promptly deliver to the Buyer a copy of that written determination and a proper VAT invoice in respect of the VAT payable and the Buyer shall within [five] days of the receipt of such determination and VAT invoice pay to the Seller a sum equal to:",
+      "replacement": "If IRAS, at any time, determines in writing that GST is payable on the sale of all or some of the Assets, the Seller shall promptly deliver to the Buyer a copy of that written determination and a proper tax invoice in respect of the GST payable and the Buyer shall within [five] days of the receipt of such determination and tax invoice pay to the Seller a sum equal to:",
+      "diff": true,
+      "rationale": "Replace HMRC with IRAS, VAT with GST, and VAT invoice with tax invoice (Singapore terminology)"
+    },
+    {
+      "blockId": "b433",
+      "type": "replace",
+      "original": "the amount of VAT determined by HMRC to be chargeable[; and OR .]",
+      "replacement": "the amount of GST determined by IRAS to be chargeable[; and OR .]",
+      "diff": true,
+      "rationale": "Replace VAT with GST and HMRC with IRAS"
+    },
+    {
+      "blockId": "b434",
+      "type": "replace",
+      "original": "[any interest charged by HMRC due to late payment of such VAT to the extent that it results [solely] from a breach by the Buyer of any of its obligations under this clause 12.]",
+      "replacement": "[any interest charged by IRAS due to late payment of such GST to the extent that it results [solely] from a breach by the Buyer of any of its obligations under this clause 12.]",
+      "diff": true,
+      "rationale": "Replace HMRC with IRAS and VAT with GST"
+    },
+    {
+      "blockId": "b436",
+      "type": "replace",
+      "original": "warrants to the Seller that it is registered for VAT purposes, or it has applied for registration for VAT purposes and requested an effective date on or before the Completion Date; ",
+      "replacement": "warrants to the Seller that it is registered for GST purposes, or it has applied for registration for GST purposes and requested an effective date on or before the Completion Date; ",
+      "diff": true,
+      "rationale": "Replace VAT registration with GST registration for Singapore"
+    },
+    {
+      "blockId": "b438",
+      "type": "replace",
+      "original": "[ undertakes to the Seller that, before the Completion Date, the Buyer will exercise the option to tax under Part 1 of Schedule 10 to the VATA 1994 in relation to [the Properties] and not less than [five] working days before the Completion Date produce to the Seller's Solicitors a certified copy of its notification and acknowledgement of receipt of notification from HMRC;]",
+      "replacement": "[Note: Singapore does not have an option to tax equivalent for property transactions. This sub-clause should be deleted or amended based on specific property GST treatment under the Goods and Services Tax Act 1993.]",
+      "diff": true,
+      "rationale": "Singapore does not have an option to tax mechanism for property like the UK. The clause referencing VATA 1994 Part 1 Schedule 10 has no Singapore equivalent and should be flagged for deletion or specific amendment."
+    },
+    {
+      "blockId": "b439",
+      "type": "replace",
+      "original": "[undertakes to the Seller that it will not revoke the option to tax described in clause 12.4(c);]",
+      "replacement": "[Note: This sub-clause relates to UK option to tax which has no Singapore equivalent and should be deleted.]",
+      "diff": true,
+      "rationale": "Singapore does not have option to tax provisions - this clause should be deleted"
+    },
+    {
+      "blockId": "b440",
+      "type": "replace",
+      "original": "[warrants to the Seller that article 5(2B) of the Value Added Tax (Special Provisions) Order 1995 does not apply to the Buyer.]",
+      "replacement": "[warrants to the Seller that the conditions for a transfer of a going concern under paragraph 3 of the Sixth Schedule to the Goods and Services Tax Act 1993 are satisfied by the Buyer.]",
+      "diff": true,
+      "rationale": "Replace UK article 5(2B) reference with Singapore TOGC provisions under paragraph 3 of Sixth Schedule to GST Act 1993"
+    },
+    {
+      "blockId": "b441",
+      "type": "replace",
+      "original": "The Seller and the Buyer do not intend to make a joint application to HMRC for the Buyer to be registered for VAT under the VAT registration number of the Seller, under regulation 6(1)(d) of the VAT Regulations 1995 (SI 1995/2518). Accordingly, the Seller shall:",
+      "replacement": "The Seller and the Buyer do not intend to make a joint application to IRAS for the Buyer to be registered for GST under the GST registration number of the Seller, under the GST (General) Regulations. Accordingly, the Seller shall:",
+      "diff": true,
+      "rationale": "Replace HMRC with IRAS, VAT with GST, and VAT Regulations 1995 with GST (General) Regulations"
+    },
+    {
+      "blockId": "b442",
+      "type": "replace",
+      "original": "retain and preserve the VAT Records after Completion, for a period of not less than [six] years from Completion (or such longer period as may be required by law);",
+      "replacement": "retain and preserve the GST Records after Completion, for a period of not less than [five] years from Completion (or such longer period as may be required by law);",
+      "diff": true,
+      "rationale": "Replace VAT Records with GST Records. Singapore requires 5-year retention for GST records under section 46 of the GST Act, compared to UK's 6-year requirement."
+    },
+    {
+      "blockId": "b443",
+      "type": "replace",
+      "original": "make the VAT Records available to the Buyer or its agents for inspection (during normal business hours) or copying [(at the Buyer's expense)]; and",
+      "replacement": "make the GST Records available to the Buyer or its agents for inspection (during normal business hours) or copying [(at the Buyer's expense)]; and",
+      "diff": true,
+      "rationale": "Replace VAT Records with GST Records"
+    },
+    {
+      "blockId": "b444",
+      "type": "replace",
+      "original": "give to the Buyer, in such form as the Buyer may reasonably require, such information contained in the VAT Records as the Buyer may reasonably specify.",
+      "replacement": "give to the Buyer, in such form as the Buyer may reasonably require, such information contained in the GST Records as the Buyer may reasonably specify.",
+      "diff": true,
+      "rationale": "Replace VAT Records with GST Records"
+    }
+  ]
+}

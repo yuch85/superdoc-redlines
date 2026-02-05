@@ -1,9 +1,14 @@
 ---
 name: superdoc-redlines
 description: CLI tool for AI agents to apply tracked changes and comments to DOCX files using ID-based editing
+version: 0.2.0
+commands: [extract, read, validate, apply, merge, parse-edits, to-markdown]
+reference_doc: README.md
 ---
 
 # SuperDoc Redlines Skill
+
+> **Full Reference:** See [README.md](./README.md) for complete API documentation, module API, and migration notes.
 
 ## Overview
 
@@ -12,6 +17,8 @@ This tool allows AI agents to programmatically edit Word documents with:
 - **Comments** (annotations attached to document blocks)
 
 Uses **ID-based editing** for deterministic, position-independent edits.
+
+---
 
 ## Quick Workflow
 
@@ -98,6 +105,114 @@ Result: `redlined.docx` with tracked changes visible in Microsoft Word.
 - `--no-track-changes` - Disable track changes mode
 - `--no-validate` - Skip validation before applying
 
+---
+
+## Decision Flow
+
+Use this flowchart to determine the correct approach:
+
+### 1. How big is the document?
+
+```
+Run: node superdoc-redline.mjs read --input doc.docx --stats-only
+
+If estimatedTokens < 100000:
+  → Read whole document: node superdoc-redline.mjs read --input doc.docx
+
+If estimatedTokens >= 100000:
+  → Use chunked reading:
+    1. node superdoc-redline.mjs read --input doc.docx --chunk 0
+    2. Check hasMore in response
+    3. Continue with --chunk 1, --chunk 2, etc. until hasMore: false
+```
+
+### 2. What operation do I need?
+
+```
+Want to CHANGE existing text?
+  → Use "operation": "replace" with "blockId" and "newText"
+
+Want to REMOVE a clause entirely?
+  → Use "operation": "delete" with "blockId"
+
+Want to ADD a reviewer note WITHOUT changing text?
+  → Use "operation": "comment" with "blockId" and "comment"
+
+Want to INSERT new content after a block?
+  → Use "operation": "insert" with "afterBlockId" and "text"
+```
+
+### 3. Should I use word-level diff?
+
+```
+Making small changes (currency symbols, names, dates)?
+  → Use "diff": true (default) - produces minimal tracked changes
+
+Rewriting entire clause with new structure?
+  → Use "diff": false - replaces whole block content
+```
+
+### 4. How to handle errors?
+
+```
+"Block ID not found":
+  → Verify blockId exists in extracted IR
+  → Check for typos (b001 vs B001 - case sensitive)
+  → Re-extract IR if document changed
+
+"Truncation warning":
+  → Re-generate edit with COMPLETE newText
+  → Use markdown format instead of JSON for large edits
+
+"Validation failed":
+  → Check required fields are present
+  → Verify operation type is valid
+  → Ensure newText is not empty for replace operations
+```
+
+---
+
+## Critical Constraints
+
+<critical_constraints>
+
+**MUST follow these rules:**
+
+1. **Block IDs are case-sensitive** — Use `b001`, NOT `B001` or `B-001`
+
+2. **Field names are exact** — Use these EXACT names:
+   - `blockId` (not `id`, `block_id`, or `blockID`)
+   - `operation` (not `type`, `op`, or `action`)
+   - `newText` (not `replaceText`, `text`, or `new_text`)
+   - `afterBlockId` (not `insertAfter` or `after_block_id`)
+
+3. **`newText` MUST be COMPLETE** — Include the ENTIRE replacement text, not just the changed portion. Truncated text will produce incorrect diffs.
+
+4. **One operation per block** — Don't create multiple edits for the same blockId
+
+5. **Version is required** — Always include `"version": "0.2.0"` in the root object
+
+6. **Insert uses `afterBlockId`** — NOT `blockId`. The new block is inserted AFTER the specified block.
+
+</critical_constraints>
+
+---
+
+## Common Mistakes
+
+| ❌ Wrong | ✅ Correct | Notes |
+|----------|-----------|-------|
+| `"type": "replace"` | `"operation": "replace"` | Use `operation` not `type` |
+| `"replaceText": "..."` | `"newText": "..."` | Use `newText` for replacements |
+| `"id": "b001"` | `"blockId": "b001"` | Use `blockId` not `id` |
+| `"searchText": "old"` | *(not used)* | Tool is block-based, not search-based |
+| `"blockId": "B001"` | `"blockId": "b001"` | IDs are lowercase |
+| `"text": "..."` for replace | `"newText": "..."` | `text` is only for insert operations |
+| Truncated `newText` | Full replacement text | Always include complete text |
+| Missing comma in JSON | Use markdown format | Markdown is more resilient |
+
+---
+
 ## Edit Operations
 
 | Operation | Required Fields | Description |
@@ -116,6 +231,165 @@ Result: `redlined.docx` with tracked changes visible in Microsoft Word.
 | `type` | `insert` | Block type: `paragraph`, `heading`, `listItem` |
 | `level` | `insert` | Heading level (1-6) if type is `heading` |
 
+---
+
+## Edit Schema (JSON Schema)
+
+Use this schema to validate your edits before applying:
+
+```json
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "required": ["version", "edits"],
+  "properties": {
+    "version": {
+      "type": "string",
+      "const": "0.2.0"
+    },
+    "author": {
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "email": { "type": "string", "format": "email" }
+      }
+    },
+    "edits": {
+      "type": "array",
+      "items": {
+        "oneOf": [
+          {
+            "type": "object",
+            "title": "Replace Operation",
+            "required": ["blockId", "operation", "newText"],
+            "properties": {
+              "blockId": { "type": "string", "pattern": "^b\\d+$" },
+              "operation": { "const": "replace" },
+              "newText": { "type": "string", "minLength": 1 },
+              "comment": { "type": "string" },
+              "diff": { "type": "boolean", "default": true }
+            },
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "title": "Delete Operation",
+            "required": ["blockId", "operation"],
+            "properties": {
+              "blockId": { "type": "string", "pattern": "^b\\d+$" },
+              "operation": { "const": "delete" },
+              "comment": { "type": "string" }
+            },
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "title": "Comment Operation",
+            "required": ["blockId", "operation", "comment"],
+            "properties": {
+              "blockId": { "type": "string", "pattern": "^b\\d+$" },
+              "operation": { "const": "comment" },
+              "comment": { "type": "string", "minLength": 1 }
+            },
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "title": "Insert Operation",
+            "required": ["afterBlockId", "operation", "text"],
+            "properties": {
+              "afterBlockId": { "type": "string", "pattern": "^b\\d+$" },
+              "operation": { "const": "insert" },
+              "text": { "type": "string", "minLength": 1 },
+              "type": { "enum": ["paragraph", "heading", "listItem"], "default": "paragraph" },
+              "level": { "type": "integer", "minimum": 1, "maximum": 6 },
+              "comment": { "type": "string" }
+            },
+            "additionalProperties": false
+          }
+        ]
+      }
+    }
+  }
+}
+```
+
+---
+
+## Expected Outputs
+
+### Successful Apply
+
+```json
+{
+  "success": true,
+  "applied": 5,
+  "skipped": [],
+  "warnings": [],
+  "outputFile": "redlined.docx"
+}
+```
+
+### Apply with Warnings
+
+```json
+{
+  "success": true,
+  "applied": 4,
+  "skipped": [
+    { "blockId": "b999", "reason": "Block ID not found" }
+  ],
+  "warnings": [
+    { "blockId": "b050", "warning": "Possible truncation detected in newText" }
+  ],
+  "outputFile": "redlined.docx"
+}
+```
+
+### Validation Error
+
+```json
+{
+  "success": false,
+  "valid": false,
+  "issues": [
+    { "blockId": "b999", "error": "Block ID not found in document" },
+    { "index": 2, "error": "Missing required field: newText" }
+  ]
+}
+```
+
+### Read Document Output
+
+```json
+{
+  "success": true,
+  "totalChunks": 1,
+  "currentChunk": 0,
+  "hasMore": false,
+  "nextChunkCommand": null,
+  "document": {
+    "metadata": { "filename": "doc.docx", "blockRange": { "start": "b001", "end": "b150" } },
+    "outline": [
+      { "title": "1. Definitions", "level": 1, "seqId": "b001" }
+    ],
+    "blocks": [
+      { "seqId": "b001", "type": "heading", "level": 1, "text": "1. Definitions" },
+      { "seqId": "b002", "type": "paragraph", "text": "\"Agreement\" means..." }
+    ]
+  }
+}
+```
+
+### Exit Codes
+
+| Code | Meaning |
+|------|---------|
+| `0` | Success |
+| `1` | Validation error, edit failed, or `--strict` warning |
+
+---
+
 ## ID Formats
 
 Both formats are accepted:
@@ -126,6 +400,8 @@ Both formats are accepted:
 | **UUID** | `550e8400-e29b-41d4-...` | Internal SuperDoc format |
 
 SeqIds are derived from document order and are consistent across extractions of the same document.
+
+---
 
 ## Large Documents (Chunking)
 
@@ -145,6 +421,8 @@ node superdoc-redline.mjs read --input large.docx --chunk 1
 ```
 
 Each chunk includes the full document outline for context.
+
+---
 
 ## Multi-Agent Workflow
 
@@ -168,10 +446,12 @@ node superdoc-redline.mjs apply -i contract.docx -o redlined.docx -e merged.json
 ```
 
 Conflict strategies:
-- `error` - Fail if same block edited by multiple agents
+- `error` - Fail if same block edited by multiple agents (safest)
 - `first` - Keep first agent's edit
 - `last` - Keep last agent's edit
 - `combine` - Merge comments, use first for other operations
+
+---
 
 ## Example: Legal Contract Review
 
@@ -205,6 +485,8 @@ Conflict strategies:
 }
 ```
 
+---
+
 ## Track Changes
 
 **Track changes is ON by default.** Output files open in Microsoft Word with all edits visible as revisions.
@@ -235,6 +517,8 @@ node superdoc-redline.mjs apply -i doc.docx -o out.docx -e edits.json --no-track
 
 `replace` operations use word-level diff by default - only changed words are marked, not the entire block. Set `"diff": false` in an edit to replace the whole block.
 
+---
+
 ## Markdown Edit Format (Recommended)
 
 For large edit sets, use markdown format instead of JSON - it's more resilient to generation errors:
@@ -264,6 +548,8 @@ node superdoc-redline.mjs parse-edits -i edits.md -o edits.json
 node superdoc-redline.mjs apply -i doc.docx -o out.docx -e edits.md
 ```
 
+---
+
 ## CLI Quick Reference
 
 | Command | Purpose |
@@ -280,6 +566,8 @@ node superdoc-redline.mjs apply -i doc.docx -o out.docx -e edits.md
 | `merge a.json b.json -o merged.json -c error` | Merge agent edits (strict) |
 | `parse-edits -i edits.md -o edits.json` | Convert markdown to JSON |
 | `to-markdown -i edits.json -o edits.md` | Convert JSON to markdown |
+
+---
 
 ## Requirements
 

@@ -404,7 +404,7 @@ The validator may report:
 ## Jurisdiction-Specific References
 
 For detailed mappings when converting between jurisdictions, see:
-- `reference/uk-to-singapore.md` - UK → Singapore statutes, bodies, terminology
+- Internal reference (not published): `tests_and_others/reference/uk-to-singapore.md`
 
 Create similar reference files for other jurisdiction pairs as needed.
 

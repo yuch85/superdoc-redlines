@@ -1,0 +1,23 @@
+{
+  "version": "0.2.0",
+  "agent": "warranties-agent",
+  "blockRange": { "start": "b358", "end": "b426" },
+  "edits": [
+    {
+      "blockId": "b387",
+      "type": "replace",
+      "original": "The Seller shall not plead the Limitation Act 1980 in respect of any claims made under the Tax Warranties, provided that the claims are notified within the time limit specified in clause 8.4(a).",
+      "replacement": "The Seller shall not plead the Limitation Act 1959 in respect of any claims made under the Tax Warranties, provided that the claims are notified within the time limit specified in clause 8.4(a).",
+      "diff": true,
+      "rationale": "Replace UK Limitation Act 1980 with Singapore Limitation Act 1959, which is the equivalent statute governing limitation periods for claims in Singapore."
+    },
+    {
+      "blockId": "b408",
+      "type": "replace",
+      "original": "the Independent Expert shall be jointly agreed by the parties or, if no agreement is reached within [10] Business Days after either party notifies the other that it wishes to make a reference to an Independent Expert under this clause, shall be nominated at the request of either party by the [President for the time being of the Institute of Chartered Accountants in England and Wales], and the parties shall co-operate and use their reasonable endeavours to agree the terms of appointment with the Independent Expert as soon as reasonably possible and if terms cannot be agreed within [10] Business Days from the date of nomination, then either party may request the [President for the time being of the Institute of Chartered Accountants in England and Wales] to nominate another Independent Expert and this clause 10.6 shall apply as if that person was the person first nominated under this clause 10.6;",
+      "replacement": "the Independent Expert shall be jointly agreed by the parties or, if no agreement is reached within [10] Business Days after either party notifies the other that it wishes to make a reference to an Independent Expert under this clause, shall be nominated at the request of either party by the [President for the time being of the Institute of Singapore Chartered Accountants], and the parties shall co-operate and use their reasonable endeavours to agree the terms of appointment with the Independent Expert as soon as reasonably possible and if terms cannot be agreed within [10] Business Days from the date of nomination, then either party may request the [President for the time being of the Institute of Singapore Chartered Accountants] to nominate another Independent Expert and this clause 10.6 shall apply as if that person was the person first nominated under this clause 10.6;",
+      "diff": true,
+      "rationale": "Replace the Institute of Chartered Accountants in England and Wales (ICAEW) with the Institute of Singapore Chartered Accountants (ISCA), which is the equivalent professional accountancy body in Singapore for nominating independent experts in dispute resolution."
+    }
+  ]
+}

@@ -1,0 +1,31 @@
+{
+  "version": "0.2.0",
+  "agent": "dataprotection-agent",
+  "blockRange": { "start": "b1000", "end": "b1100" },
+  "edits": [
+    {
+      "blockId": "b1089",
+      "type": "replace",
+      "diff": true,
+      "find": "any applicable privacy and data protection laws, regulations and mandatory codes",
+      "replace": "the Personal Data Protection Act 2012 (PDPA) and any other applicable data protection laws, regulations and mandatory codes",
+      "reason": "Adapt generic reference to data protection laws to specifically reference Singapore's Personal Data Protection Act 2012 (PDPA) as the primary governing statute, while maintaining flexibility for other applicable laws."
+    },
+    {
+      "blockId": "b1089",
+      "type": "replace",
+      "diff": true,
+      "find": "to process any personal data comprised in the Databases following Completion for the purposes of the Business in compliance with all such laws, regulations and codes",
+      "replace": "to collect, use and disclose any personal data comprised in the Databases following Completion for the purposes of the Business in compliance with the PDPA and all such laws, regulations and codes, including obtaining any required consents from individuals and providing notification in accordance with the PDPA",
+      "reason": "Align terminology with Singapore PDPA which uses 'collect, use and disclose' rather than 'process'. Also incorporate PDPA's consent and notification requirements which are core obligations under Singapore's data protection framework."
+    },
+    {
+      "blockId": "b1090",
+      "type": "replace",
+      "diff": true,
+      "find": "any data security breach reporting or notification requirement under any law, regulation or mandatory code",
+      "replace": "any data breach notification requirement under the Personal Data Protection Act 2012 (PDPA), including the mandatory data breach notification requirements to the Personal Data Protection Commission (PDPC) and affected individuals, or under any other applicable law, regulation or mandatory code",
+      "reason": "Update to reference Singapore's PDPA data breach notification framework (introduced in 2020), which requires mandatory notification to the PDPC and affected individuals for notifiable data breaches. Replaces generic reference with specific Singapore regulatory requirements."
+    }
+  ]
+}

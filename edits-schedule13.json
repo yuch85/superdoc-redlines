@@ -1,0 +1,322 @@
+{
+  "version": "0.2.0",
+  "agent": "schedule13-agent",
+  "blockRange": { "start": "b700", "end": "b1000" },
+  "edits": [
+    {
+      "blockId": "b728",
+      "action": "replace",
+      "diff": true,
+      "reason": "Replace UK Copyright Designs and Patents Act 1988 with Singapore Copyright Act 2021",
+      "old": "Chapter IV of Part I of the Copyright Designs and Patents Act 1988 or any similar provisions of law in any jurisdiction",
+      "new": "the Copyright Act 2021 of Singapore or any similar provisions of law in any jurisdiction"
+    },
+    {
+      "blockId": "b731",
+      "action": "replace",
+      "diff": true,
+      "reason": "Replace VAT Records with GST Records for Singapore",
+      "old": "[all VAT Records;]",
+      "new": "[all GST Records;]"
+    },
+    {
+      "blockId": "b732",
+      "action": "replace",
+      "diff": true,
+      "reason": "Replace UK Registrar of Companies with Singapore ACRA",
+      "old": "Registrar of Companies",
+      "new": "Accounting and Corporate Regulatory Authority (ACRA)"
+    },
+    {
+      "blockId": "b737",
+      "action": "replace",
+      "diff": false,
+      "reason": "Replace UK employment records requirements with Singapore equivalents - CPF records and Employment Act requirements",
+      "old": "all National Insurance and PAYE records, fully completed in respect of the Employees and showing that payments are up to date, and all records required to be kept under the Working Time Regulations 1998;",
+      "new": "all Central Provident Fund (CPF) contribution records, fully completed in respect of the Employees and showing that payments are up to date, and all records required to be kept under the Employment Act 1968 of Singapore;"
+    },
+    {
+      "blockId": "b745",
+      "action": "replace",
+      "diff": true,
+      "reason": "Singapore has no equivalent to TUPE - adapt for Employment Act transfer provisions",
+      "old": "explaining that their employment has been transferred to the Buyer pursuant to TUPE",
+      "new": "explaining that their employment has been transferred to the Buyer pursuant to the terms of this agreement and the Employment Act 1968 of Singapore"
+    },
+    {
+      "blockId": "b756",
+      "action": "replace",
+      "diff": true,
+      "reason": "Replace UK stamp duty land tax with Singapore stamp duty under Stamp Duties Act",
+      "old": "stamp duty or stamp duty land tax",
+      "new": "stamp duty under the Stamp Duties Act 1929 of Singapore"
+    },
+    {
+      "blockId": "b762",
+      "action": "replace",
+      "diff": true,
+      "reason": "Replace UK Merger Control heading with Singapore Competition Commission reference",
+      "old": "[UK Merger Control Requirements",
+      "new": "[Singapore Competition Law Requirements"
+    },
+    {
+      "blockId": "b763",
+      "action": "replace",
+      "diff": false,
+      "reason": "Replace UK/EU merger control provisions with Singapore Competition Act 2004 merger provisions",
+      "old": "If the Buyer considers (whether or not as a result of receiving confirmation to this effect from the European Commission) that the Transaction does not constitute a concentration having a Community dimension within the meaning of Council Regulation (EC) No. 139/2004 as amended [or any subsequent legislation], either:",
+      "new": "If the Buyer considers that the Transaction may be subject to the merger control regime under the Competition Act 2004 of Singapore, either:"
+    },
+    {
+      "blockId": "b764",
+      "action": "replace",
+      "diff": false,
+      "reason": "Replace CMA reference with CCCS (Competition and Consumer Commission of Singapore)",
+      "old": "the Buyer being satisfied (whether or not as a result of receiving confirmation from the Competition and Markets Authority) that the Transaction does not constitute a relevant merger situation within the meaning of Part 3 of the Enterprise Act 2002; or",
+      "new": "the Buyer being satisfied (whether or not as a result of receiving confirmation from the Competition and Consumer Commission of Singapore (CCCS)) that the Transaction does not substantially lessen competition in any market in Singapore within the meaning of Section 54 of the Competition Act 2004; or"
+    },
+    {
+      "blockId": "b765",
+      "action": "replace",
+      "diff": true,
+      "reason": "Replace Phase 2 CMA reference with CCCS Phase 2 review",
+      "old": "the Buyer receiving confirmation in terms satisfactory to it that there will not be a Phase 2 CMA reference of the Transaction",
+      "new": "the Buyer receiving confirmation in terms satisfactory to it that there will not be a Phase 2 CCCS review of the Transaction"
+    },
+    {
+      "blockId": "b766",
+      "action": "replace",
+      "diff": false,
+      "reason": "Replace UK Enterprise Act provisions with Singapore Competition Act provisions",
+      "old": "[the Buyer receiving confirmation in terms satisfactory to it that there will not be a Phase 2 CMA reference of the Transaction, subject to the acceptance of undertakings by the CMA under Part 3 of the Enterprise Act 2002 and the terms of those undertakings are in all respects satisfactory to the Buyer[. OR ; or OR ,]]",
+      "new": "[the Buyer receiving confirmation in terms satisfactory to it that there will not be a Phase 2 CCCS review of the Transaction, subject to the acceptance of commitments by the CCCS under the Competition Act 2004 of Singapore and the terms of those commitments are in all respects satisfactory to the Buyer[. OR ; or OR ,]]"
+    },
+    {
+      "blockId": "b767",
+      "action": "replace",
+      "diff": false,
+      "reason": "Replace CMA Phase 2 inquiry reference with CCCS Phase 2 review",
+      "old": "[completion of an inquiry following a Phase 2 CMA reference of the Transaction pursuant to which the Competition and Markets Authority makes a finding that [either:]]",
+      "new": "[completion of a Phase 2 review by the CCCS of the Transaction pursuant to which the Competition and Consumer Commission of Singapore makes a finding that [either:]]"
+    },
+    {
+      "blockId": "b768",
+      "action": "replace",
+      "diff": true,
+      "reason": "Update competition lessening standard for Singapore jurisdiction",
+      "old": "the Transaction is not expected to result in a substantial lessening of competition within any market or markets in the UK for goods or services",
+      "new": "the Transaction is not expected to result in a substantial lessening of competition within any market or markets in Singapore for goods or services"
+    },
+    {
+      "blockId": "b769",
+      "action": "replace",
+      "diff": true,
+      "reason": "Update competition lessening standard for Singapore jurisdiction",
+      "old": "the Transaction may be expected to result in a substantial lessening of competition within a market or markets in the UK for goods or services but that the acceptance of specified undertakings by the Buyer would have the effect of remedying, mitigating or preventing that lessening of competition and the terms of such undertakings are in all respects acceptable to the Buyer",
+      "new": "the Transaction may be expected to result in a substantial lessening of competition within a market or markets in Singapore for goods or services but that the acceptance of specified commitments by the Buyer would have the effect of remedying, mitigating or preventing that lessening of competition and the terms of such commitments are in all respects acceptable to the Buyer"
+    },
+    {
+      "blockId": "b770",
+      "action": "replace",
+      "diff": false,
+      "reason": "Replace UK Competition Appeal Tribunal provisions with Singapore Competition Appeal Board provisions",
+      "old": "[and, in addition to [paragraph 2(a), paragraph 2(b), paragraph 2(c) or paragraph 2(d) above], [either] the period specified in Rule 25 of the Competition Appeal Tribunal Rules 2015 (SI 2015/48) for making an application under section 120 of the Enterprise Act 2002 for the review of a decision of the Competition and Markets Authority in relation to the Transaction having expired without any such application being made[ or, where such an application has been made, the Competition Appeal Tribunal having dismissed such an application.]]",
+      "new": "[and, in addition to [paragraph 2(a), paragraph 2(b), paragraph 2(c) or paragraph 2(d) above], [either] the period for making an appeal to the Competition Appeal Board under Section 71 of the Competition Act 2004 of Singapore for the review of a decision of the CCCS in relation to the Transaction having expired without any such appeal being made[ or, where such an appeal has been made, the Competition Appeal Board having dismissed such an appeal.]]"
+    },
+    {
+      "blockId": "b771",
+      "action": "delete",
+      "reason": "EU Merger Control Requirements not applicable to Singapore jurisdiction - delete entire section heading"
+    },
+    {
+      "blockId": "b772",
+      "action": "delete",
+      "reason": "EU Merger Control provisions not applicable to Singapore jurisdiction"
+    },
+    {
+      "blockId": "b773",
+      "action": "delete",
+      "reason": "EU Merger Control provisions not applicable to Singapore jurisdiction"
+    },
+    {
+      "blockId": "b774",
+      "action": "delete",
+      "reason": "EU Merger Control provisions not applicable to Singapore jurisdiction"
+    },
+    {
+      "blockId": "b775",
+      "action": "delete",
+      "reason": "EU Merger Control provisions not applicable to Singapore jurisdiction"
+    },
+    {
+      "blockId": "b776",
+      "action": "delete",
+      "reason": "EU Merger Control provisions not applicable to Singapore jurisdiction"
+    },
+    {
+      "blockId": "b844",
+      "action": "replace",
+      "diff": true,
+      "reason": "Replace UK Companies Act 2006 accounting record requirements with Singapore Companies Act provisions",
+      "old": "section 386 and section 388 of the Companies Act 2006",
+      "new": "Section 199 of the Companies Act 1967 of Singapore"
+    },
+    {
+      "blockId": "b848",
+      "action": "replace",
+      "diff": true,
+      "reason": "Replace UK Companies Acts with Singapore Companies Act",
+      "old": "Companies Acts",
+      "new": "Companies Act 1967 of Singapore"
+    },
+    {
+      "blockId": "b850",
+      "action": "replace",
+      "diff": false,
+      "reason": "Replace UK accounting standards and Companies Act with Singapore Financial Reporting Standards and Companies Act",
+      "old": "The Accounts have been properly prepared in accordance with FRS 102, using appropriate accounting policies and estimation techniques as required by section 10 of FRS 102, and comply with the requirements of the Companies Act 2006 and all other applicable laws and regulations in the UK.",
+      "new": "The Accounts have been properly prepared in accordance with Singapore Financial Reporting Standards (SFRS), using appropriate accounting policies and estimation techniques as required by SFRS, and comply with the requirements of the Companies Act 1967 of Singapore and all other applicable laws and regulations in Singapore."
+    },
+    {
+      "blockId": "b851",
+      "action": "replace",
+      "diff": true,
+      "reason": "Replace UK auditor registration with Singapore ACRA registration",
+      "old": "The Accounts have been audited by an individual or firm registered to act as auditors in the UK and the auditors' report thereon is unmodified.",
+      "new": "The Accounts have been audited by an individual or firm registered to act as auditors with ACRA in Singapore and the auditors' report thereon is unmodified."
+    },
+    {
+      "blockId": "b858",
+      "action": "replace",
+      "diff": false,
+      "reason": "Replace UK Companies Act 2006 accounts filing requirements with Singapore Companies Act requirements",
+      "old": "The Accounts have been filed and laid before the Seller in general meeting in accordance with the relevant requirements of the Companies Act 2006 and all other applicable laws and regulations in the UK.",
+      "new": "The Accounts have been filed and laid before the Seller in general meeting in accordance with the relevant requirements of the Companies Act 1967 of Singapore and all other applicable laws and regulations in Singapore."
+    },
+    {
+      "blockId": "b922",
+      "action": "replace",
+      "diff": true,
+      "reason": "Replace British and EU standards with Singapore standards",
+      "old": "British and European Union Standards",
+      "new": "Singapore Standards (SS) and international standards"
+    },
+    {
+      "blockId": "b933",
+      "action": "replace",
+      "diff": false,
+      "reason": "Singapore has no equivalent to TUPE regulation 11 - adapt for general employment information disclosure",
+      "old": "The Seller has provided the Buyer with the information required under regulation 11 of TUPE in relation to each of the Employees and shall notify the Buyer of any changes in that information before the Effective Time.",
+      "new": "The Seller has provided the Buyer with all relevant employment information in relation to each of the Employees and shall notify the Buyer of any changes in that information before the Effective Time."
+    },
+    {
+      "blockId": "b935",
+      "action": "replace",
+      "diff": true,
+      "reason": "Remove EU treaty reference as not applicable to Singapore",
+      "old": "whether arising under contract, statute, at common law or in equity or under any treaties including the Treaty on the Functioning of the European Union, the laws of the European Union or otherwise",
+      "new": "whether arising under contract, statute, at common law or in equity or otherwise"
+    },
+    {
+      "blockId": "b937",
+      "action": "replace",
+      "diff": false,
+      "reason": "Replace UK TUPE and TULRCA consultation requirements with Singapore Employment Act provisions",
+      "old": "fully complied with its obligations under regulation 13 of TUPE and section 188 of TULRCA to inform and consult with trade union or other employee representatives on any matter concerning or arising from this agreement or affecting the Employees;",
+      "new": "fully complied with any applicable obligations under the Employment Act 1968 of Singapore and the Industrial Relations Act 1960 of Singapore to inform and consult with trade union or other employee representatives on any matter concerning or arising from this agreement or affecting the Employees;"
+    },
+    {
+      "blockId": "b939",
+      "action": "replace",
+      "diff": false,
+      "reason": "Replace HMRC and National Insurance with IRAS and CPF for Singapore",
+      "old": "paid or will have paid to HMRC and any other appropriate authority all taxes, National Insurance contributions and other levies due in respect of the Employees on account of their employment by the Seller up to and including the Effective Time.",
+      "new": "paid or will have paid to IRAS (Inland Revenue Authority of Singapore) and the Central Provident Fund Board all taxes, CPF contributions and other levies due in respect of the Employees on account of their employment by the Seller up to and including the Effective Time."
+    },
+    {
+      "blockId": "b957",
+      "action": "replace",
+      "diff": false,
+      "reason": "Replace UK Working Time Regulations and EU Directive with Singapore Employment Act leave provisions",
+      "old": "In the [two] years preceding the date of this agreement, in respect of each of the Employees, all holiday pay for periods of holiday taken under regulation 13 of the Working Time Regulations 1998 (SI 1998/1833) has been calculated and paid in accordance with the Directive 2003/88/EC of the European Parliament and of the Council of 4 November 2003 concerning certain aspects of the organisation of working time.",
+      "new": "In the [two] years preceding the date of this agreement, in respect of each of the Employees, all holiday pay for periods of annual leave taken under the Employment Act 1968 of Singapore has been calculated and paid in accordance with the applicable provisions of the Employment Act 1968."
+    },
+    {
+      "blockId": "b959",
+      "action": "replace",
+      "diff": true,
+      "reason": "Replace United Kingdom reference with Singapore",
+      "old": "whether in the United Kingdom or elsewhere",
+      "new": "whether in Singapore or elsewhere"
+    },
+    {
+      "blockId": "b963",
+      "action": "replace",
+      "diff": false,
+      "reason": "Adapt UK trade union recognition warranty for Singapore Industrial Relations Act framework",
+      "old": "[the Seller has not recognised any trade union or any other organisation of employees or their representatives in respect of any of the Employees OR the Seller has Disclosed all collective bargaining, procedural or other agreements or arrangements (whether in writing, oral or by custom and practice and whether binding or not) in existence relating to or relevant to any of the Employees and the current state of any negotiations with any trade union or other organisation of employees or their representatives which might affect the terms of employment, working arrangements or severance payments of any of the Employees];",
+      "new": "[the Seller has not recognised any trade union or any other organisation of employees or their representatives in respect of any of the Employees OR the Seller has Disclosed all collective agreements, procedural or other agreements or arrangements (whether in writing, oral or by custom and practice and whether binding or not) in existence relating to or relevant to any of the Employees and the current state of any negotiations with any trade union or other organisation of employees or their representatives which might affect the terms of employment, working arrangements or severance payments of any of the Employees under the Industrial Relations Act 1960 of Singapore];"
+    },
+    {
+      "blockId": "b964",
+      "action": "replace",
+      "diff": false,
+      "reason": "Replace UK Employment Relations Act 1999 and Central Arbitration Committee with Singapore Industrial Relations Act and Industrial Arbitration Court",
+      "old": "the Seller is not (and has not in the [two] years preceding the date of this agreement been) involved or likely to be involved in connection with the Business in any industrial or trade dispute (official or unofficial) or negotiation with any trade union or other organisation of employees or their representatives, nor any application for recognition pending before the Central Arbitration Committee under the Employment Relations Act 1999, nor is any such industrial or trade dispute, negotiation or application pending, threatened or anticipated; and",
+      "new": "the Seller is not (and has not in the [two] years preceding the date of this agreement been) involved or likely to be involved in connection with the Business in any industrial or trade dispute (official or unofficial) or negotiation with any trade union or other organisation of employees or their representatives, nor any application for recognition pending before the Industrial Arbitration Court under the Industrial Relations Act 1960 of Singapore, nor is any such industrial or trade dispute, negotiation or application pending, threatened or anticipated; and"
+    },
+    {
+      "blockId": "b965",
+      "action": "replace",
+      "diff": false,
+      "reason": "Replace UK TULRCA and TUPE redundancy consultation requirements with Singapore Employment Act provisions",
+      "old": "in the period of [one] year preceding the date of this agreement, the Seller has not given notice of any redundancies to the relevant Secretary of State or started consultations under Part IV of TULRCA[, TUPE 1981] or TUPE, and the Seller has complied with its obligations under Part IV of TULRCA[, TUPE 1981] and TUPE and will not before Completion do any such things.]",
+      "new": "in the period of [one] year preceding the date of this agreement, the Seller has not given notice of any retrenchments to the Ministry of Manpower or started consultations under the Employment Act 1968 of Singapore, and the Seller has complied with its obligations under the Employment Act 1968 of Singapore and the Industrial Relations Act 1960 of Singapore and will not before Completion do any such things.]"
+    },
+    {
+      "blockId": "b966",
+      "action": "replace",
+      "diff": false,
+      "reason": "Singapore has no equivalent to TUPE - adapt provision for general employment transfer principles",
+      "old": "In the period of [ten] years preceding the date of this agreement, the Seller has not (nor has any predecessor or owner of any part of the Business) been a party to any relevant transfer for the purposes of TUPE 1981 or TUPE affecting any of the Employees or any other persons engaged in the Business and no event has occurred which may involve such persons in the future being a party to such a transfer. No such persons have had their terms of employment varied for any reason as a result of or connected with such a transfer.",
+      "new": "In the period of [ten] years preceding the date of this agreement, the Seller has not (nor has any predecessor or owner of any part of the Business) been a party to any business transfer affecting any of the Employees or any other persons engaged in the Business and no event has occurred which may involve such persons in the future being a party to such a transfer. No such persons have had their terms of employment varied for any reason as a result of or connected with such a transfer."
+    },
+    {
+      "blockId": "b982",
+      "action": "replace",
+      "diff": true,
+      "reason": "Replace UK Bribery Act 2010 with Singapore Prevention of Corruption Act",
+      "old": "The Seller has not [in relation to the Business] at any time engaged in any activity, practice or conduct which would constitute an offence under the Bribery Act 2010.",
+      "new": "The Seller has not [in relation to the Business] at any time engaged in any activity, practice or conduct which would constitute an offence under the Prevention of Corruption Act 1960 of Singapore."
+    },
+    {
+      "blockId": "b983",
+      "action": "replace",
+      "diff": false,
+      "reason": "Replace UK Bribery Act 2010 section 7 provisions with Singapore Prevention of Corruption Act provisions",
+      "old": "No Associated Person of the Seller [in relation to the Business] has bribed another person (within the meaning given in section 7(3) of the Bribery Act 2010) intending to obtain or retain business or an advantage in the conduct of business for the Business, and the Seller has operated and has in place adequate procedures [in line with the guidance published by the Secretary of State under section 9 of the Bribery Act 2010] designed to prevent their Associated Persons from undertaking any such conduct.",
+      "new": "No Associated Person of the Seller [in relation to the Business] has corruptly given or offered any gratification to another person (within the meaning of the Prevention of Corruption Act 1960 of Singapore) intending to obtain or retain business or an advantage in the conduct of business for the Business, and the Seller has operated and has in place adequate procedures designed to prevent their Associated Persons from undertaking any such conduct."
+    },
+    {
+      "blockId": "b984",
+      "action": "replace",
+      "diff": true,
+      "reason": "Replace UK Bribery Act 2010 reference with Singapore Prevention of Corruption Act",
+      "old": "any offence or alleged offence under the Bribery Act 2010 in connection with the Business",
+      "new": "any offence or alleged offence under the Prevention of Corruption Act 1960 of Singapore in connection with the Business"
+    },
+    {
+      "blockId": "b985",
+      "action": "replace",
+      "diff": true,
+      "reason": "Adapt UK public procurement exclusion provision for Singapore Government Procurement context",
+      "old": "The Seller has not [in relation to the Business] been excluded from participation in a public contract as a result of being convicted of bribery or corruption.]",
+      "new": "The Seller has not [in relation to the Business] been excluded from participation in a government contract or procurement as a result of being convicted of corruption under the Prevention of Corruption Act 1960 of Singapore.]"
+    },
+    {
+      "blockId": "b993",
+      "action": "delete",
+      "reason": "EU State Aid provisions under Article 108 TFEU not applicable to Singapore - delete provision"
+    }
+  ]
+}

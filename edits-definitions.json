@@ -1,0 +1,207 @@
+{
+  "version": "0.2.0",
+  "agent": "definitions-agent",
+  "blockRange": { "start": "b151", "end": "b300" },
+  "edits": [
+    {
+      "blockId": "b165",
+      "type": "replace",
+      "original": "Business Day: a day other than a Saturday, Sunday or public holiday in England when banks in London are open for business.",
+      "replacement": "Business Day: a day other than a Saturday, Sunday or public holiday in Singapore when banks in Singapore are open for business.",
+      "diff": true,
+      "rationale": "Replace UK jurisdiction (England/London) with Singapore jurisdiction for Business Day definition"
+    },
+    {
+      "blockId": "b178",
+      "type": "replace",
+      "original": "CAA 2001: Capital Allowances Act 2001.",
+      "replacement": "ITA 1947: Income Tax Act 1947 (as it relates to capital allowances).",
+      "diff": true,
+      "rationale": "Replace UK Capital Allowances Act 2001 with Singapore Income Tax Act 1947 which governs capital allowances in Singapore"
+    },
+    {
+      "blockId": "b180",
+      "type": "replace",
+      "original": "Companies Acts: the Companies Act 1985 and the Companies Act 2006.",
+      "replacement": "Companies Act: the Companies Act 1967.",
+      "diff": true,
+      "rationale": "Replace UK Companies Acts with Singapore Companies Act 1967"
+    },
+    {
+      "blockId": "b184",
+      "type": "replace",
+      "original": "Connected: has the meaning, in relation to a person, given in section 1122 of the Corporation Tax Act 2010.",
+      "replacement": "Connected: has the meaning, in relation to a person, given in section 6 of the Income Tax Act 1947 (as it relates to related parties and associated persons).",
+      "diff": true,
+      "rationale": "Replace UK Corporation Tax Act 2010 reference with Singapore Income Tax Act 1947 which defines related parties"
+    },
+    {
+      "blockId": "b188",
+      "type": "replace",
+      "original": "[Customer Data: the Customer personal data (as defined in the DPA 1998) which forms part of the Customer Database.]",
+      "replacement": "[Customer Data: the Customer personal data (as defined in the PDPA 2012) which forms part of the Customer Database.]",
+      "diff": true,
+      "rationale": "Replace UK Data Protection Act 1998 with Singapore Personal Data Protection Act 2012"
+    },
+    {
+      "blockId": "b190",
+      "type": "replace",
+      "original": "[Data Controller: as defined in section 1 of the DPA 1998.]",
+      "replacement": "[Organisation: as defined in section 2 of the PDPA 2012 (being the equivalent of a data controller under Singapore law).]",
+      "diff": true,
+      "rationale": "Replace UK DPA 1998 Data Controller concept with Singapore PDPA 2012 Organisation concept"
+    },
+    {
+      "blockId": "b194",
+      "type": "replace",
+      "original": "DPA 1998: the Data Protection Act 1998.",
+      "replacement": "PDPA 2012: the Personal Data Protection Act 2012.",
+      "diff": true,
+      "rationale": "Replace UK Data Protection Act 1998 with Singapore Personal Data Protection Act 2012"
+    },
+    {
+      "blockId": "b196",
+      "type": "replace",
+      "original": "[Employee Data: the personal data (as defined in the DPA 1998) of the Data Employees which forms part of the Employee Database.]",
+      "replacement": "[Employee Data: the personal data (as defined in the PDPA 2012) of the Data Employees which forms part of the Employee Database.]",
+      "diff": true,
+      "rationale": "Replace UK DPA 1998 reference with Singapore PDPA 2012"
+    },
+    {
+      "blockId": "b204",
+      "type": "replace",
+      "original": "Excluded Liabilities: the Excluded Contract Liabilities and all the liabilities or obligations relating to the Business or Assets (other than the Assumed Liabilities) and outstanding on, or accrued or referable to the period up to and including, the Effective Time or arising by virtue of the Transaction, including any and all liabilities in respect of National Insurance, PAYE, VAT or other Taxation attributable to the Seller in respect of the Business, the Assets or the Employees relating to the period ending on the Effective Time [and all bank and other overdrafts and loans and any connected penalties, charges or fees owing by the Seller].",
+      "replacement": "Excluded Liabilities: the Excluded Contract Liabilities and all the liabilities or obligations relating to the Business or Assets (other than the Assumed Liabilities) and outstanding on, or accrued or referable to the period up to and including, the Effective Time or arising by virtue of the Transaction, including any and all liabilities in respect of CPF contributions, withholding tax, GST or other Taxation attributable to the Seller in respect of the Business, the Assets or the Employees relating to the period ending on the Effective Time [and all bank and other overdrafts and loans and any connected penalties, charges or fees owing by the Seller].",
+      "diff": true,
+      "rationale": "Replace UK tax concepts (National Insurance, PAYE, VAT) with Singapore equivalents (CPF contributions, withholding tax, GST)"
+    },
+    {
+      "blockId": "b207",
+      "type": "replace",
+      "original": "FRS 102: Financial Reporting Standard 102: The Financial Reporting Standard applicable in the UK and Republic of Ireland as issued by the Financial Reporting Council of the UK and in force for the accounting period ended on the Accounts Date.",
+      "replacement": "SFRS: Singapore Financial Reporting Standards as issued by the Accounting Standards Council of Singapore and in force for the accounting period ended on the Accounts Date.",
+      "diff": true,
+      "rationale": "Replace UK Financial Reporting Standard (FRS 102) with Singapore Financial Reporting Standards (SFRS)"
+    },
+    {
+      "blockId": "b210",
+      "type": "replace",
+      "original": "HMRC: HM Revenue and Customs.",
+      "replacement": "IRAS: Inland Revenue Authority of Singapore.",
+      "diff": true,
+      "rationale": "Replace UK tax authority (HMRC) with Singapore tax authority (IRAS)"
+    },
+    {
+      "blockId": "b232",
+      "type": "replace",
+      "original": "[Phase 2 CMA Reference: a reference by the Competition and Markets Authority to its chair for the constitution of a group under Schedule 4 to the Enterprise and Regulatory Reform Act 2013. ]",
+      "replacement": "[Phase 2 CCCS Review: a detailed review by the Competition and Consumer Commission of Singapore under section 57 of the Competition Act 2004.]",
+      "diff": true,
+      "rationale": "Replace UK Competition and Markets Authority (CMA) with Singapore Competition and Consumer Commission of Singapore (CCCS) and update statutory reference"
+    },
+    {
+      "blockId": "b237",
+      "type": "replace",
+      "original": "Seller's Scheme: the pension scheme [or schemes] known as the [NAME OF PENSION SCHEME], established with effect from [DATE], [and the [NAME OF PENSION SCHEME], established with effect from [DATE],] and which [is OR are] registered under Chapter 2 of Part 4 of the Finance Act 2004.",
+      "replacement": "Seller's Scheme: the retirement benefit scheme [or schemes] known as the [NAME OF RETIREMENT BENEFIT SCHEME], established with effect from [DATE], [and the [NAME OF RETIREMENT BENEFIT SCHEME], established with effect from [DATE],] and which [is OR are] approved or exempted under the Income Tax Act 1947.",
+      "diff": true,
+      "rationale": "Replace UK Finance Act 2004 pension scheme registration with Singapore Income Tax Act 1947 retirement benefit scheme approval"
+    },
+    {
+      "blockId": "b244",
+      "type": "replace",
+      "original": "any form of tax, levy, impost, duty, contribution, customs and other import duties, liability and charge in the nature of taxation and all related withholdings or deductions of any kind (including, for the avoidance of doubt, any liability under section 455 of the Corporation Tax Act 2010 and national insurance contribution liabilities in the United Kingdom and corresponding obligations elsewhere) wherever and whenever payable and both of the UK or any equivalent tax in any other jurisdiction and shall further include any amount payable as a consequence of any claim, direction order or determination of any Taxation Authority; and",
+      "replacement": "any form of tax, levy, impost, duty, contribution, customs and other import duties, liability and charge in the nature of taxation and all related withholdings or deductions of any kind (including, for the avoidance of doubt, any liability under section 10E of the Income Tax Act 1947 and Central Provident Fund contribution liabilities in Singapore and corresponding obligations elsewhere) wherever and whenever payable and both of Singapore or any equivalent tax in any other jurisdiction and shall further include any amount payable as a consequence of any claim, direction order or determination of any Taxation Authority; and",
+      "diff": true,
+      "rationale": "Replace UK Corporation Tax Act 2010 and national insurance references with Singapore Income Tax Act 1947 and CPF references"
+    },
+    {
+      "blockId": "b247",
+      "type": "replace",
+      "original": "Taxation Authority: any government, state or municipality or any local, state, federal or other fiscal, revenue, customs or excise authority, body or official competent to impose, administer, levy, assess or collect Tax in the United Kingdom or elsewhere.",
+      "replacement": "Taxation Authority: any government, state or municipality or any local, state, federal or other fiscal, revenue, customs or excise authority, body or official competent to impose, administer, levy, assess or collect Tax in Singapore or elsewhere.",
+      "diff": true,
+      "rationale": "Replace United Kingdom with Singapore in Taxation Authority definition"
+    },
+    {
+      "blockId": "b257",
+      "type": "replace",
+      "original": "TULRCA: the Trade Union and Labour Relations (Consolidation) Act 1992.",
+      "replacement": "Trade Union Laws: the Trade Unions Act 1940 and the Industrial Relations Act 1960.",
+      "diff": true,
+      "rationale": "Replace UK TULRCA with Singapore Trade Unions Act 1940 and Industrial Relations Act 1960"
+    },
+    {
+      "blockId": "b258",
+      "type": "replace",
+      "original": "TUPE: the Transfer of Undertakings (Protection of Employment) Regulations 2006, and any predecessor regulations including the Transfer of Undertakings (Protection of Employment) Regulations 1981.",
+      "replacement": "Employment Transfer: Note: Singapore does not have automatic transfer of employment regulations equivalent to UK TUPE. Employment contracts do not automatically transfer upon a business transfer and employees must be separately offered new employment by the Buyer. References to TUPE in this agreement shall be construed accordingly and the parties shall comply with the Employment Act 1968 in relation to the termination and re-engagement of employees.",
+      "diff": true,
+      "rationale": "Singapore has no TUPE equivalent - employment does not automatically transfer. This definition clarifies the position under Singapore law"
+    },
+    {
+      "blockId": "b259",
+      "type": "replace",
+      "original": "VAT: value added tax [or any equivalent tax] chargeable in the UK [or elsewhere].",
+      "replacement": "GST: Goods and Services Tax [or any equivalent tax] chargeable in Singapore [or elsewhere].",
+      "diff": true,
+      "rationale": "Replace UK VAT with Singapore GST"
+    },
+    {
+      "blockId": "b260",
+      "type": "replace",
+      "original": "VAT Records: all records of the Business, which under paragraph 6 of Schedule 11 to VATA 1994 are required to be preserved.",
+      "replacement": "GST Records: all records of the Business, which under section 46 of the Goods and Services Tax Act 1993 are required to be preserved.",
+      "diff": true,
+      "rationale": "Replace UK VATA 1994 VAT records requirement with Singapore GST Act 1993 records requirement"
+    },
+    {
+      "blockId": "b261",
+      "type": "replace",
+      "original": "VATA 1994: the Value Added Tax Act 1994.",
+      "replacement": "GST Act 1993: the Goods and Services Tax Act 1993.",
+      "diff": true,
+      "rationale": "Replace UK Value Added Tax Act 1994 with Singapore Goods and Services Tax Act 1993"
+    },
+    {
+      "blockId": "b274",
+      "type": "replace",
+      "original": "A reference to a holding company or a subsidiary means a holding company or a subsidiary (as the case may be) as defined in section 1159 of the Companies Act 2006 [and a company shall be treated, for the purposes only of the membership requirement contained in sections 1159(1)(b) and (c), as a member of another company even if its shares in that other company are registered in the name of:",
+      "replacement": "A reference to a holding company or a subsidiary means a holding company or a subsidiary (as the case may be) as defined in section 5 of the Companies Act 1967 [and a company shall be treated, for the purposes only of the membership requirement contained in section 5, as a member of another company even if its shares in that other company are registered in the name of:",
+      "diff": true,
+      "rationale": "Replace UK Companies Act 2006 section 1159 with Singapore Companies Act 1967 section 5 for holding company/subsidiary definitions"
+    },
+    {
+      "blockId": "b277",
+      "type": "replace",
+      "original": "In the case of a limited liability partnership which is a subsidiary of a company or another limited liability partnership, section 1159 of the Companies Act 2006 shall be amended so that: (a) references in sections 1159(1)(a) and (c) to voting rights are to the members' rights to vote on all or substantially all matters which are decided by a vote of the members of the limited liability partnership; and (b) the reference in section 1159(1)(b) to the right to appoint or remove a majority of its board of directors is to the right to appoint or remove members holding a majority of the voting rights.",
+      "replacement": "In the case of a limited liability partnership which is a subsidiary of a company or another limited liability partnership, section 5 of the Companies Act 1967 shall be amended so that: (a) references in section 5 to voting rights are to the members' rights to vote on all or substantially all matters which are decided by a vote of the members of the limited liability partnership; and (b) the reference in section 5 to the right to appoint or remove a majority of its board of directors is to the right to appoint or remove members holding a majority of the voting rights.",
+      "diff": true,
+      "rationale": "Replace UK Companies Act 2006 section 1159 references with Singapore Companies Act 1967 section 5"
+    },
+    {
+      "blockId": "b278",
+      "type": "replace",
+      "original": "A reference to a subsidiary undertaking or parent undertaking means a subsidiary undertaking or parent undertaking as defined in section 1162 of the Companies Act 2006.",
+      "replacement": "A reference to a subsidiary undertaking or parent undertaking means a subsidiary undertaking or parent undertaking as defined in section 5 of the Companies Act 1967.",
+      "diff": true,
+      "rationale": "Replace UK Companies Act 2006 section 1162 with Singapore Companies Act 1967 section 5"
+    },
+    {
+      "blockId": "b285",
+      "type": "replace",
+      "original": "Any reference to an English legal term for any action, remedy, method of judicial proceeding, legal document, legal status, court, official or any legal concept or thing shall, in respect of any jurisdiction other than England, be deemed to include a reference to that which most nearly approximates to the English legal term in that jurisdiction.",
+      "replacement": "Any reference to a Singapore legal term for any action, remedy, method of judicial proceeding, legal document, legal status, court, official or any legal concept or thing shall, in respect of any jurisdiction other than Singapore, be deemed to include a reference to that which most nearly approximates to the Singapore legal term in that jurisdiction.",
+      "diff": true,
+      "rationale": "Replace England/English with Singapore in the legal terms interpretation clause"
+    },
+    {
+      "blockId": "b287",
+      "type": "replace",
+      "original": "[References to times of the day are, unless the context requires otherwise, to [London] time and references to a day are to a period of 24 hours running from midnight on the previous day.]",
+      "replacement": "[References to times of the day are, unless the context requires otherwise, to [Singapore] time and references to a day are to a period of 24 hours running from midnight on the previous day.]",
+      "diff": true,
+      "rationale": "Replace London time with Singapore time"
+    }
+  ]
+}

@@ -1,0 +1,130 @@
+{
+  "version": "0.2.0",
+  "agent": "schedules-agent",
+  "blockRange": { "start": "b500", "end": "b700" },
+  "edits": [
+    {
+      "id": "edit-001",
+      "blockId": "b518",
+      "type": "replace",
+      "original": "it shall duly observe all its obligations as a Data Controller under the DPA 1998 which arise in connection with processing Customer Data and Employee Data;",
+      "replacement": "it shall duly observe all its obligations as an organisation under the Personal Data Protection Act 2012 (PDPA) which arise in connection with processing Customer Data and Employee Data;",
+      "reason": "Singapore jurisdiction: Replace UK Data Protection Act 1998 with Singapore Personal Data Protection Act 2012",
+      "jurisdiction": "SG"
+    },
+    {
+      "id": "edit-002",
+      "blockId": "b519",
+      "type": "replace",
+      "original": "it shall comply with the eight Data Protection Principles set out in the DPA 1998 and, in particular, it shall process Customer Data and Employee Data fairly and lawfully in accordance with the First Data Protection Principle for the purpose of the continued provision of details of the [product(s)] [and] [services] to the Customers and in connection with the employment of the Data Employees and in accordance with the terms and conditions set out in this agreement;",
+      "replacement": "it shall comply with the Data Protection Provisions set out in the PDPA and, in particular, it shall collect, use and disclose Customer Data and Employee Data only for purposes that a reasonable person would consider appropriate in the circumstances and in accordance with the Consent Obligation for the purpose of the continued provision of details of the [product(s)] [and] [services] to the Customers and in connection with the employment of the Data Employees and in accordance with the terms and conditions set out in this agreement;",
+      "reason": "Singapore jurisdiction: Replace UK DPA 1998 Data Protection Principles with Singapore PDPA Data Protection Provisions",
+      "jurisdiction": "SG"
+    },
+    {
+      "id": "edit-003",
+      "blockId": "b521",
+      "type": "replace",
+      "original": "it shall respond to any request made by a Data Employee or Customer in relation to the provision of details of the [product(s)] [and] [services] in accordance with the rights of data subjects (as defined in the DPA 1998); and",
+      "replacement": "it shall respond to any request made by a Data Employee or Customer in relation to the provision of details of the [product(s)] [and] [services] in accordance with the Access and Correction Obligations under the PDPA; and",
+      "reason": "Singapore jurisdiction: Replace UK data subject rights under DPA 1998 with Singapore PDPA Access and Correction Obligations",
+      "jurisdiction": "SG"
+    },
+    {
+      "id": "edit-004",
+      "blockId": "b522",
+      "type": "replace",
+      "original": "it shall obtain, and at all times maintain, a notification under the DPA 1998 appropriate to the performance of its obligations under this agreement.",
+      "replacement": "it shall comply with all registration and notification requirements under the PDPA, including registration with the Personal Data Protection Commission where required, appropriate to the performance of its obligations under this agreement.",
+      "reason": "Singapore jurisdiction: Replace UK DPA 1998 notification requirements with Singapore PDPC registration requirements",
+      "jurisdiction": "SG"
+    },
+    {
+      "id": "edit-005",
+      "blockId": "b523",
+      "type": "replace",
+      "original": "The Buyer shall indemnify the Seller against all Losses suffered or incurred by the Seller arising out of or in connection with processing the Customer Data or Employee Data by the Buyer, including those arising out of any third party demand, claim or action, or any breach of contract, negligence, fraud, wilful misconduct, breach of statutory duty or non-compliance with the data protection obligations set out in this clause 20 or any part of the DPA 1998 by the Buyer, its employees, agents or sub-contractors.]",
+      "replacement": "The Buyer shall indemnify the Seller against all Losses suffered or incurred by the Seller arising out of or in connection with processing the Customer Data or Employee Data by the Buyer, including those arising out of any third party demand, claim or action, or any breach of contract, negligence, fraud, wilful misconduct, breach of statutory duty or non-compliance with the data protection obligations set out in this clause 20 or any provision of the PDPA by the Buyer, its employees, agents or sub-contractors.]",
+      "reason": "Singapore jurisdiction: Replace UK DPA 1998 with Singapore PDPA",
+      "jurisdiction": "SG"
+    },
+    {
+      "id": "edit-006",
+      "blockId": "b551",
+      "type": "replace",
+      "original": "not more than [NUMBER]% of any class of shares or securities of any company traded on a recognised investment exchange (within the meaning of the Financial Services and Markets Act 2000).",
+      "replacement": "not more than [NUMBER]% of any class of shares or securities of any company traded on a securities exchange (within the meaning of the Securities and Futures Act 2001).",
+      "reason": "Singapore jurisdiction: Replace UK FSMA 2000 with Singapore Securities and Futures Act 2001",
+      "jurisdiction": "SG"
+    },
+    {
+      "id": "edit-007",
+      "blockId": "b651",
+      "type": "replace",
+      "original": "Interest under this clause will accrue each day at 4% a year above the Bank of England's base rate from time to time, but at 4% a year for any period when that base rate is below 0%.",
+      "replacement": "Interest under this clause will accrue each day at 4% a year above the Singapore Overnight Rate Average (SORA) published by the Monetary Authority of Singapore from time to time, but at 4% a year for any period when SORA is below 0%.",
+      "reason": "Singapore jurisdiction: Replace Bank of England base rate with Singapore SORA (the MAS benchmark rate)",
+      "jurisdiction": "SG"
+    },
+    {
+      "id": "edit-008",
+      "blockId": "b658",
+      "type": "replace",
+      "original": "Unless it expressly states otherwise, this agreement does not give rise to any rights under the Contracts (Rights of Third Parties) Act 1999 to enforce any term of this agreement.",
+      "replacement": "Unless it expressly states otherwise, this agreement does not give rise to any rights under the Contracts (Rights of Third Parties) Act (Cap. 53B) to enforce any term of this agreement.",
+      "reason": "Singapore jurisdiction: Replace UK Contracts (Rights of Third Parties) Act 1999 with Singapore equivalent",
+      "jurisdiction": "SG"
+    },
+    {
+      "id": "edit-009",
+      "blockId": "b680",
+      "type": "replace",
+      "original": "This agreement and any dispute or claim (including non-contractual disputes or claims) arising out of or in connection with it or its subject matter or formation  shall be governed by and construed in accordance with the law of England and Wales.",
+      "replacement": "This agreement and any dispute or claim (including non-contractual disputes or claims) arising out of or in connection with it or its subject matter or formation shall be governed by and construed in accordance with the laws of the Republic of Singapore.",
+      "reason": "Singapore jurisdiction: Change governing law from England and Wales to Singapore",
+      "jurisdiction": "SG"
+    },
+    {
+      "id": "edit-010",
+      "blockId": "b681",
+      "type": "replace",
+      "original": "Each party irrevocably agrees that the courts of England and Wales shall have [exclusive OR non-exclusive] jurisdiction to settle any dispute or claim (including non-contractual disputes or claims) arising out of or in connection with this agreement or its subject matter or formation.",
+      "replacement": "Each party irrevocably agrees that the courts of the Republic of Singapore shall have [exclusive OR non-exclusive] jurisdiction to settle any dispute or claim (including non-contractual disputes or claims) arising out of or in connection with this agreement or its subject matter or formation.",
+      "reason": "Singapore jurisdiction: Change court jurisdiction from England and Wales to Singapore",
+      "jurisdiction": "SG"
+    }
+  ],
+  "notes": {
+    "outOfRangeContent": "Schedule 3 (Conditions to Completion) begins at block b759 and Schedule 14 (Pension Transfer) begins at block b1252, both outside the assigned block range of b500-b700. The following recommendations are provided for those sections but are NOT included in the edits array above:",
+    "schedule3Recommendations": [
+      {
+        "blockRange": "b762-b770",
+        "section": "UK Merger Control Requirements",
+        "recommendation": "REPLACE ENTIRE SECTION with Singapore Competition Act 2004 provisions. Singapore has a voluntary merger notification regime under section 54 of the Competition Act 2004. CCCS (Competition and Consumer Commission of Singapore) is the regulator. Key changes: (1) Replace CMA references with CCCS; (2) Replace Enterprise Act 2002 with Competition Act 2004; (3) Note that Singapore merger notification is voluntary, not mandatory; (4) Remove Phase 2 CMA reference language as Singapore uses different procedural framework"
+      },
+      {
+        "blockRange": "b771-b776",
+        "section": "EU Merger Control Requirements",
+        "recommendation": "DELETE ENTIRE SECTION. EU merger control has no application to Singapore transactions. Council Regulation (EC) No. 139/2004 references should be removed entirely."
+      },
+      {
+        "blockRange": "b760-b761",
+        "section": "Circular and shareholder consent",
+        "recommendation": "UPDATE to reference Singapore Companies Act 1967 (Cap. 50) instead of implied UK Companies Act references. Listed company requirements should reference SGX Listing Manual if applicable."
+      }
+    ],
+    "schedule14Recommendations": [
+      {
+        "blockRange": "b1252-b1306+",
+        "section": "Pension Transfer (entire Schedule 14)",
+        "recommendation": "CONSIDER DELETION OR SUBSTANTIAL REPLACEMENT. Singapore has no equivalent to UK defined benefit pension transfer rules. Key issues: (1) Singapore uses CPF (Central Provident Fund), a defined contribution scheme where employees retain their own accounts - no 'transfer' is needed between employers; (2) Finance Act 2004 pension registration has no Singapore equivalent; (3) Pension Schemes Act 1993/Pensions Act 1995/2004/2008 references are all UK-specific with no Singapore equivalent; (4) HMRC consent requirements do not apply. RECOMMENDED REPLACEMENT: A simplified CPF transition provision confirming: (a) The Buyer will comply with CPF contribution obligations for Transferring Employees from Completion; (b) The Seller will ensure all CPF contributions are paid up to Completion; (c) No asset transfer is required as employees' CPF accounts remain with them."
+      }
+    ],
+    "additionalUKReferencesToReview": [
+      {
+        "block": "b611",
+        "text": "References to Schedule 3 conditions - cross-reference will need updating if Schedule 3 paragraph numbers change after Singapore adaptation"
+      }
+    ]
+  }
+}

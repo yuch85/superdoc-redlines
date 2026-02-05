@@ -1,0 +1,756 @@
+{
+  "version": "0.2.0",
+  "author": {
+    "name": "AI Legal Counsel",
+    "email": "ai@counsel.sg"
+  },
+  "edits": [
+    {
+      "blockId": "b165",
+      "operation": "replace",
+      "diff": true,
+      "newText": "Business Day: a day other than a Saturday, Sunday or public holiday in Singapore when banks in Singapore are open for business.",
+      "comment": "Replace UK jurisdiction (England/London) with Singapore jurisdiction for Business Day definition"
+    },
+    {
+      "blockId": "b178",
+      "operation": "replace",
+      "diff": true,
+      "newText": "ITA 1947: Income Tax Act 1947 (as it relates to capital allowances).",
+      "comment": "Replace UK Capital Allowances Act 2001 with Singapore Income Tax Act 1947 which governs capital allowances in Singapore"
+    },
+    {
+      "blockId": "b180",
+      "operation": "replace",
+      "diff": true,
+      "newText": "Companies Act: the Companies Act 1967.",
+      "comment": "Replace UK Companies Acts with Singapore Companies Act 1967"
+    },
+    {
+      "blockId": "b184",
+      "operation": "replace",
+      "diff": true,
+      "newText": "Connected: has the meaning, in relation to a person, given in section 6 of the Income Tax Act 1947 (as it relates to related parties and associated persons).",
+      "comment": "Replace UK Corporation Tax Act 2010 reference with Singapore Income Tax Act 1947 which defines related parties"
+    },
+    {
+      "blockId": "b188",
+      "operation": "replace",
+      "diff": true,
+      "newText": "[Customer Data: the Customer personal data (as defined in the PDPA 2012) which forms part of the Customer Database.]",
+      "comment": "Replace UK Data Protection Act 1998 with Singapore Personal Data Protection Act 2012"
+    },
+    {
+      "blockId": "b190",
+      "operation": "replace",
+      "diff": true,
+      "newText": "[Organisation: as defined in section 2 of the PDPA 2012 (being the equivalent of a data controller under Singapore law).]",
+      "comment": "Replace UK DPA 1998 Data Controller concept with Singapore PDPA 2012 Organisation concept"
+    },
+    {
+      "blockId": "b194",
+      "operation": "replace",
+      "diff": true,
+      "newText": "PDPA 2012: the Personal Data Protection Act 2012.",
+      "comment": "Replace UK Data Protection Act 1998 with Singapore Personal Data Protection Act 2012"
+    },
+    {
+      "blockId": "b196",
+      "operation": "replace",
+      "diff": true,
+      "newText": "[Employee Data: the personal data (as defined in the PDPA 2012) of the Data Employees which forms part of the Employee Database.]",
+      "comment": "Replace UK DPA 1998 reference with Singapore PDPA 2012"
+    },
+    {
+      "blockId": "b204",
+      "operation": "replace",
+      "diff": true,
+      "newText": "Excluded Liabilities: the Excluded Contract Liabilities and all the liabilities or obligations relating to the Business or Assets (other than the Assumed Liabilities) and outstanding on, or accrued or referable to the period up to and including, the Effective Time or arising by virtue of the Transaction, including any and all liabilities in respect of CPF contributions, withholding tax, GST or other Taxation attributable to the Seller in respect of the Business, the Assets or the Employees relating to the period ending on the Effective Time [and all bank and other overdrafts and loans and any connected penalties, charges or fees owing by the Seller].",
+      "comment": "Replace UK tax concepts (National Insurance, PAYE, VAT) with Singapore equivalents (CPF contributions, withholding tax, GST)"
+    },
+    {
+      "blockId": "b207",
+      "operation": "replace",
+      "diff": true,
+      "newText": "SFRS: Singapore Financial Reporting Standards as issued by the Accounting Standards Council of Singapore and in force for the accounting period ended on the Accounts Date.",
+      "comment": "Replace UK Financial Reporting Standard (FRS 102) with Singapore Financial Reporting Standards (SFRS)"
+    },
+    {
+      "blockId": "b210",
+      "operation": "replace",
+      "diff": true,
+      "newText": "IRAS: Inland Revenue Authority of Singapore.",
+      "comment": "Replace UK tax authority (HMRC) with Singapore tax authority (IRAS)"
+    },
+    {
+      "blockId": "b232",
+      "operation": "replace",
+      "diff": true,
+      "newText": "[Phase 2 CCCS Review: a detailed review by the Competition and Consumer Commission of Singapore under section 57 of the Competition Act 2004.]",
+      "comment": "Replace UK Competition and Markets Authority (CMA) with Singapore Competition and Consumer Commission of Singapore (CCCS) and update statutory reference"
+    },
+    {
+      "blockId": "b237",
+      "operation": "replace",
+      "diff": true,
+      "newText": "Seller's Scheme: the retirement benefit scheme [or schemes] known as the [NAME OF RETIREMENT BENEFIT SCHEME], established with effect from [DATE], [and the [NAME OF RETIREMENT BENEFIT SCHEME], established with effect from [DATE],] and which [is OR are] approved or exempted under the Income Tax Act 1947.",
+      "comment": "Replace UK Finance Act 2004 pension scheme registration with Singapore Income Tax Act 1947 retirement benefit scheme approval"
+    },
+    {
+      "blockId": "b244",
+      "operation": "replace",
+      "diff": true,
+      "newText": "any form of tax, levy, impost, duty, contribution, customs and other import duties, liability and charge in the nature of taxation and all related withholdings or deductions of any kind (including, for the avoidance of doubt, any liability under section 10E of the Income Tax Act 1947 and Central Provident Fund contribution liabilities in Singapore and corresponding obligations elsewhere) wherever and whenever payable and both of Singapore or any equivalent tax in any other jurisdiction and shall further include any amount payable as a consequence of any claim, direction order or determination of any Taxation Authority; and",
+      "comment": "Replace UK Corporation Tax Act 2010 and national insurance references with Singapore Income Tax Act 1947 and CPF references"
+    },
+    {
+      "blockId": "b247",
+      "operation": "replace",
+      "diff": true,
+      "newText": "Taxation Authority: any government, state or municipality or any local, state, federal or other fiscal, revenue, customs or excise authority, body or official competent to impose, administer, levy, assess or collect Tax in Singapore or elsewhere.",
+      "comment": "Replace United Kingdom with Singapore in Taxation Authority definition"
+    },
+    {
+      "blockId": "b257",
+      "operation": "replace",
+      "diff": true,
+      "newText": "Trade Union Laws: the Trade Unions Act 1940 and the Industrial Relations Act 1960.",
+      "comment": "Replace UK TULRCA with Singapore Trade Unions Act 1940 and Industrial Relations Act 1960"
+    },
+    {
+      "blockId": "b258",
+      "operation": "replace",
+      "diff": true,
+      "newText": "Employment Transfer: Note: Singapore does not have automatic transfer of employment regulations equivalent to UK TUPE. Employment contracts do not automatically transfer upon a business transfer and employees must be separately offered new employment by the Buyer. References to TUPE in this agreement shall be construed accordingly and the parties shall comply with the Employment Act 1968 in relation to the termination and re-engagement of employees.",
+      "comment": "Singapore has no TUPE equivalent - employment does not automatically transfer. This definition clarifies the position under Singapore law"
+    },
+    {
+      "blockId": "b259",
+      "operation": "replace",
+      "diff": true,
+      "newText": "GST: Goods and Services Tax [or any equivalent tax] chargeable in Singapore [or elsewhere].",
+      "comment": "Replace UK VAT with Singapore GST"
+    },
+    {
+      "blockId": "b260",
+      "operation": "replace",
+      "diff": true,
+      "newText": "GST Records: all records of the Business, which under section 46 of the Goods and Services Tax Act 1993 are required to be preserved.",
+      "comment": "Replace UK VATA 1994 VAT records requirement with Singapore GST Act 1993 records requirement"
+    },
+    {
+      "blockId": "b261",
+      "operation": "replace",
+      "diff": true,
+      "newText": "GST Act 1993: the Goods and Services Tax Act 1993.",
+      "comment": "Replace UK Value Added Tax Act 1994 with Singapore Goods and Services Tax Act 1993"
+    },
+    {
+      "blockId": "b274",
+      "operation": "replace",
+      "diff": true,
+      "newText": "A reference to a holding company or a subsidiary means a holding company or a subsidiary (as the case may be) as defined in section 5 of the Companies Act 1967 [and a company shall be treated, for the purposes only of the membership requirement contained in section 5, as a member of another company even if its shares in that other company are registered in the name of:",
+      "comment": "Replace UK Companies Act 2006 section 1159 with Singapore Companies Act 1967 section 5 for holding company/subsidiary definitions"
+    },
+    {
+      "blockId": "b277",
+      "operation": "replace",
+      "diff": true,
+      "newText": "In the case of a limited liability partnership which is a subsidiary of a company or another limited liability partnership, section 5 of the Companies Act 1967 shall be amended so that: (a) references in section 5 to voting rights are to the members' rights to vote on all or substantially all matters which are decided by a vote of the members of the limited liability partnership; and (b) the reference in section 5 to the right to appoint or remove a majority of its board of directors is to the right to appoint or remove members holding a majority of the voting rights.",
+      "comment": "Replace UK Companies Act 2006 section 1159 references with Singapore Companies Act 1967 section 5"
+    },
+    {
+      "blockId": "b278",
+      "operation": "replace",
+      "diff": true,
+      "newText": "A reference to a subsidiary undertaking or parent undertaking means a subsidiary undertaking or parent undertaking as defined in section 5 of the Companies Act 1967.",
+      "comment": "Replace UK Companies Act 2006 section 1162 with Singapore Companies Act 1967 section 5"
+    },
+    {
+      "blockId": "b285",
+      "operation": "replace",
+      "diff": true,
+      "newText": "Any reference to a Singapore legal term for any action, remedy, method of judicial proceeding, legal document, legal status, court, official or any legal concept or thing shall, in respect of any jurisdiction other than Singapore, be deemed to include a reference to that which most nearly approximates to the Singapore legal term in that jurisdiction.",
+      "comment": "Replace England/English with Singapore in the legal terms interpretation clause"
+    },
+    {
+      "blockId": "b287",
+      "operation": "replace",
+      "diff": true,
+      "newText": "[References to times of the day are, unless the context requires otherwise, to [Singapore] time and references to a day are to a period of 24 hours running from midnight on the previous day.]",
+      "comment": "Replace London time with Singapore time"
+    },
+    {
+      "blockId": "b427",
+      "operation": "replace",
+      "diff": true,
+      "newText": "Goods and services tax",
+      "comment": "Replace UK VAT clause heading with Singapore GST equivalent"
+    },
+    {
+      "blockId": "b429",
+      "operation": "replace",
+      "diff": true,
+      "newText": "the Buyer under this agreement are exclusive of GST and the Buyer shall in addition pay an amount equal to any GST chargeable on those sums or consideration; and",
+      "comment": "Replace VAT with GST (Goods and Services Tax) for Singapore jurisdiction"
+    },
+    {
+      "blockId": "b430",
+      "operation": "replace",
+      "diff": true,
+      "newText": "the Seller under this agreement are exclusive of GST and the Seller shall in addition pay an amount equal to any GST chargeable on those sums or consideration.",
+      "comment": "Replace VAT with GST for Singapore jurisdiction"
+    },
+    {
+      "blockId": "b431",
+      "operation": "replace",
+      "diff": true,
+      "newText": "The Seller and the Buyer intend that the transfer of the Business shall qualify as a transfer of a going concern under paragraph 3 of the Sixth Schedule to the Goods and Services Tax Act 1993 and agree to use all reasonable endeavours to secure that the sale is treated as neither a supply of goods nor a supply of services [but neither the Seller nor the Buyer shall be required to make any appeal to any tribunal or court against any determination by IRAS that the sale, or any part, shall not be treated as such]. ",
+      "comment": "Replace UK TOGC provisions (article 5 of VAT Special Provisions Order 1995) with Singapore TOGC provisions (paragraph 3 of Sixth Schedule to GST Act 1993). Replace HMRC with IRAS."
+    },
+    {
+      "blockId": "b432",
+      "operation": "replace",
+      "diff": true,
+      "newText": "If IRAS, at any time, determines in writing that GST is payable on the sale of all or some of the Assets, the Seller shall promptly deliver to the Buyer a copy of that written determination and a proper tax invoice in respect of the GST payable and the Buyer shall within [five] days of the receipt of such determination and tax invoice pay to the Seller a sum equal to:",
+      "comment": "Replace HMRC with IRAS, VAT with GST, and VAT invoice with tax invoice (Singapore terminology)"
+    },
+    {
+      "blockId": "b433",
+      "operation": "replace",
+      "diff": true,
+      "newText": "the amount of GST determined by IRAS to be chargeable[; and OR .]",
+      "comment": "Replace VAT with GST and HMRC with IRAS"
+    },
+    {
+      "blockId": "b434",
+      "operation": "replace",
+      "diff": true,
+      "newText": "[any interest charged by IRAS due to late payment of such GST to the extent that it results [solely] from a breach by the Buyer of any of its obligations under this clause 12.]",
+      "comment": "Replace HMRC with IRAS and VAT with GST"
+    },
+    {
+      "blockId": "b436",
+      "operation": "replace",
+      "diff": true,
+      "newText": "warrants to the Seller that it is registered for GST purposes, or it has applied for registration for GST purposes and requested an effective date on or before the Completion Date; ",
+      "comment": "Replace VAT registration with GST registration for Singapore"
+    },
+    {
+      "blockId": "b438",
+      "operation": "replace",
+      "diff": true,
+      "newText": "[Note: Singapore does not have an option to tax equivalent for property transactions. This sub-clause should be deleted or amended based on specific property GST treatment under the Goods and Services Tax Act 1993.]",
+      "comment": "Singapore does not have an option to tax mechanism for property like the UK. The clause referencing VATA 1994 Part 1 Schedule 10 has no Singapore equivalent and should be flagged for deletion or specific amendment."
+    },
+    {
+      "blockId": "b439",
+      "operation": "replace",
+      "diff": true,
+      "newText": "[Note: This sub-clause relates to UK option to tax which has no Singapore equivalent and should be deleted.]",
+      "comment": "Singapore does not have option to tax provisions - this clause should be deleted"
+    },
+    {
+      "blockId": "b440",
+      "operation": "replace",
+      "diff": true,
+      "newText": "[warrants to the Seller that the conditions for a transfer of a going concern under paragraph 3 of the Sixth Schedule to the Goods and Services Tax Act 1993 are satisfied by the Buyer.]",
+      "comment": "Replace UK article 5(2B) reference with Singapore TOGC provisions under paragraph 3 of Sixth Schedule to GST Act 1993"
+    },
+    {
+      "blockId": "b441",
+      "operation": "replace",
+      "diff": true,
+      "newText": "The Seller and the Buyer do not intend to make a joint application to IRAS for the Buyer to be registered for GST under the GST registration number of the Seller, under the GST (General) Regulations. Accordingly, the Seller shall:",
+      "comment": "Replace HMRC with IRAS, VAT with GST, and VAT Regulations 1995 with GST (General) Regulations"
+    },
+    {
+      "blockId": "b442",
+      "operation": "replace",
+      "diff": true,
+      "newText": "retain and preserve the GST Records after Completion, for a period of not less than [five] years from Completion (or such longer period as may be required by law);",
+      "comment": "Replace VAT Records with GST Records. Singapore requires 5-year retention for GST records under section 46 of the GST Act, compared to UK's 6-year requirement."
+    },
+    {
+      "blockId": "b443",
+      "operation": "replace",
+      "diff": true,
+      "newText": "make the GST Records available to the Buyer or its agents for inspection (during normal business hours) or copying [(at the Buyer's expense)]; and",
+      "comment": "Replace VAT Records with GST Records"
+    },
+    {
+      "blockId": "b444",
+      "operation": "replace",
+      "diff": true,
+      "newText": "give to the Buyer, in such form as the Buyer may reasonably require, such information contained in the GST Records as the Buyer may reasonably specify.",
+      "comment": "Replace VAT Records with GST Records"
+    },
+    {
+      "blockId": "b450",
+      "operation": "replace",
+      "diff": false,
+      "newText": "The parties acknowledge that under Singapore law there is no automatic transfer of employment upon a business sale. Accordingly, the Seller shall procure that each Employee is given the opportunity to accept an offer of employment from the Buyer on terms no less favourable than their existing terms of employment with the Seller. Any Employee who accepts such offer and provides written consent to the transfer of their employment shall become an employee of the Buyer with effect from the Effective Time (each such Employee, a \"Transferring Employee\"). The employment of any Employee who does not accept the Buyer's offer or does not consent to the transfer shall remain with the Seller and shall not transfer to the Buyer.",
+      "comment": "Singapore does not have TUPE or equivalent automatic transfer legislation. Employment transfer requires employee consent and new employment offers from the Buyer. This is a fundamental restructuring to reflect Singapore's consensual transfer framework under the Employment Act 1968."
+    },
+    {
+      "blockId": "b452",
+      "operation": "replace",
+      "diff": false,
+      "newText": "that it has complied with, and shall up to and including the Effective Time, comply with all of its obligations under the Employment Act 1968 and those of any of its predecessors (whether or not legally binding or in respect of which it would be expected to comply by any regulatory or other body to which it is subject) due to or in connection with the Employees or any body representing them;",
+      "comment": "Replaced reference to TUPE with reference to Singapore's Employment Act 1968, which governs employment relationships in Singapore."
+    },
+    {
+      "blockId": "b453",
+      "operation": "replace",
+      "diff": false,
+      "newText": "that it has paid and shall pay all sums due to or in relation to the Employees up to and including the Effective Time (whether arising under common law, statute, equity or otherwise) including all salaries, wages, bonus or commission, expenses, annual leave pay, CPF contributions, Skills Development Levy, liability to Taxation and other sums payable in respect of any period up to the Effective Time;",
+      "comment": "Replaced 'National Insurance' with 'CPF contributions' (Central Provident Fund) which is Singapore's mandatory social security savings scheme. Also replaced 'holiday pay' with 'annual leave pay' and added 'Skills Development Levy' which is a Singapore-specific statutory contribution."
+    },
+    {
+      "blockId": "b454",
+      "operation": "replace",
+      "diff": false,
+      "newText": "that it has complied and shall comply in all respects with its obligations to provide employee liability information to the Buyer, including but not limited to details of each Employee's terms and conditions of employment, any disciplinary or grievance proceedings, and any claims or potential claims;",
+      "comment": "Removed reference to TUPE regulation 11 and replaced with substantive obligation to provide employee liability information, which reflects the commercial intent of the original provision without relying on UK-specific legislation."
+    },
+    {
+      "blockId": "b456",
+      "operation": "replace",
+      "diff": false,
+      "newText": "that it has complied and shall comply in all respects with its obligations under the Industrial Relations Act 1960 in respect of any recognised trade unions and with the Employment Act 1968 in respect of the Employees (and that it has provided and shall provide to the Buyer such information as the Buyer may request in writing in order to verify such compliance), and that it has informed and consulted with the Employees regarding the proposed transfer and the Buyer's offer of employment;",
+      "comment": "Replaced references to TUPE regulation 13 and TULRCA (UK trade union legislation) with references to Singapore's Industrial Relations Act 1960 and Employment Act 1968. Also adapted consultation requirements to reflect Singapore practice."
+    },
+    {
+      "blockId": "b461",
+      "operation": "replace",
+      "diff": false,
+      "newText": "to indemnify the Buyer against all Losses which the Buyer may suffer, sustain, incur, pay or be put to arising from any of the following:",
+      "comment": "Minor grammatical adjustment for clarity in the Singapore-adapted context."
+    },
+    {
+      "blockId": "b465",
+      "operation": "replace",
+      "diff": false,
+      "newText": "any claim by any employee of the Seller (other than the Employees) that their employment has transferred to the Buyer or that they are entitled to employment with the Buyer;",
+      "comment": "Removed TUPE reference. In Singapore, since there is no automatic transfer, this indemnity covers any claims by non-designated employees who may assert employment rights against the Buyer."
+    },
+    {
+      "blockId": "b466",
+      "operation": "replace",
+      "diff": false,
+      "newText": "any act or omission of the Seller before the Effective Time in relation to the Employees or their employment; and",
+      "comment": "Removed TUPE reference. Since Singapore does not have automatic liability transfer, the indemnity is restructured to cover Seller's pre-transfer acts or omissions directly."
+    },
+    {
+      "blockId": "b467",
+      "operation": "replace",
+      "diff": false,
+      "newText": "the Seller's failure to comply with its obligations under this clause 14 or under applicable Singapore employment legislation including the Employment Act 1968 and the Industrial Relations Act 1960.",
+      "comment": "Replaced specific TUPE regulation 13 reference with references to Singapore employment legislation and the contractual obligations under this clause."
+    },
+    {
+      "blockId": "b468",
+      "operation": "replace",
+      "diff": false,
+      "newText": "If any contract of employment or engagement or collective agreement not Disclosed to the Buyer purports to have effect between the Buyer and any person or body or their representatives, or if any Employee or other person asserts that their employment has transferred to or arises with the Buyer:",
+      "comment": "Reworded to remove TUPE reference. Since Singapore has no automatic transfer, this clause addresses situations where undisclosed persons claim employment with the Buyer."
+    },
+    {
+      "blockId": "b473",
+      "operation": "replace",
+      "diff": false,
+      "newText": "Without prejudice to the other provisions of this clause 14, the Seller shall, at its own expense, give the Buyer such assistance as the Buyer may reasonably require to contest any demand or claim by any person employed or engaged in the Business at or before the Effective Time or their representatives resulting from or in connection with this agreement, subject always to the Seller's obligations under the Personal Data Protection Act 2012.",
+      "comment": "Replaced 'DPA 1998' (UK Data Protection Act 1998) with 'Personal Data Protection Act 2012' which is Singapore's data protection legislation (PDPA)."
+    },
+    {
+      "blockId": "b476",
+      "operation": "replace",
+      "diff": false,
+      "newText": "The Seller's CPF contributions and any supplementary retirement or pension schemes shall be dealt with in accordance with the provisions of Schedule 14, and the Seller shall ensure all CPF contributions due in respect of the Employees up to the Effective Time have been paid in accordance with the Central Provident Fund Act.",
+      "comment": "Adapted to reference Singapore's CPF framework. In Singapore, CPF is the primary mandatory retirement savings scheme, so the provision is updated to ensure CPF compliance while retaining reference to any supplementary schemes that may exist."
+    },
+    {
+      "blockId": "b387",
+      "operation": "replace",
+      "diff": true,
+      "newText": "The Seller shall not plead the Limitation Act 1959 in respect of any claims made under the Tax Warranties, provided that the claims are notified within the time limit specified in clause 8.4(a).",
+      "comment": "Replace UK Limitation Act 1980 with Singapore Limitation Act 1959, which is the equivalent statute governing limitation periods for claims in Singapore."
+    },
+    {
+      "blockId": "b408",
+      "operation": "replace",
+      "diff": true,
+      "newText": "the Independent Expert shall be jointly agreed by the parties or, if no agreement is reached within [10] Business Days after either party notifies the other that it wishes to make a reference to an Independent Expert under this clause, shall be nominated at the request of either party by the [President for the time being of the Institute of Singapore Chartered Accountants], and the parties shall co-operate and use their reasonable endeavours to agree the terms of appointment with the Independent Expert as soon as reasonably possible and if terms cannot be agreed within [10] Business Days from the date of nomination, then either party may request the [President for the time being of the Institute of Singapore Chartered Accountants] to nominate another Independent Expert and this clause 10.6 shall apply as if that person was the person first nominated under this clause 10.6;",
+      "comment": "Replace the Institute of Chartered Accountants in England and Wales (ICAEW) with the Institute of Singapore Chartered Accountants (ISCA), which is the equivalent professional accountancy body in Singapore for nominating independent experts in dispute resolution."
+    },
+    {
+      "blockId": "b728",
+      "operation": "replace",
+      "diff": true,
+      "newText": "the Copyright Act 2021 of Singapore or any similar provisions of law in any jurisdiction",
+      "comment": "Replace UK Copyright Designs and Patents Act 1988 with Singapore Copyright Act 2021"
+    },
+    {
+      "blockId": "b731",
+      "operation": "replace",
+      "diff": true,
+      "newText": "[all GST Records;]",
+      "comment": "Replace VAT Records with GST Records for Singapore"
+    },
+    {
+      "blockId": "b732",
+      "operation": "replace",
+      "diff": true,
+      "newText": "Accounting and Corporate Regulatory Authority (ACRA)",
+      "comment": "Replace UK Registrar of Companies with Singapore ACRA"
+    },
+    {
+      "blockId": "b737",
+      "operation": "replace",
+      "diff": false,
+      "newText": "all Central Provident Fund (CPF) contribution records, fully completed in respect of the Employees and showing that payments are up to date, and all records required to be kept under the Employment Act 1968 of Singapore;",
+      "comment": "Replace UK employment records requirements with Singapore equivalents - CPF records and Employment Act requirements"
+    },
+    {
+      "blockId": "b745",
+      "operation": "replace",
+      "diff": true,
+      "newText": "explaining that their employment has been transferred to the Buyer pursuant to the terms of this agreement and the Employment Act 1968 of Singapore",
+      "comment": "Singapore has no equivalent to TUPE - adapt for Employment Act transfer provisions"
+    },
+    {
+      "blockId": "b756",
+      "operation": "replace",
+      "diff": true,
+      "newText": "stamp duty under the Stamp Duties Act 1929 of Singapore",
+      "comment": "Replace UK stamp duty land tax with Singapore stamp duty under Stamp Duties Act"
+    },
+    {
+      "blockId": "b762",
+      "operation": "replace",
+      "diff": true,
+      "newText": "[Singapore Competition Law Requirements",
+      "comment": "Replace UK Merger Control heading with Singapore Competition Commission reference"
+    },
+    {
+      "blockId": "b763",
+      "operation": "replace",
+      "diff": false,
+      "newText": "If the Buyer considers that the Transaction may be subject to the merger control regime under the Competition Act 2004 of Singapore, either:",
+      "comment": "Replace UK/EU merger control provisions with Singapore Competition Act 2004 merger provisions"
+    },
+    {
+      "blockId": "b764",
+      "operation": "replace",
+      "diff": false,
+      "newText": "the Buyer being satisfied (whether or not as a result of receiving confirmation from the Competition and Consumer Commission of Singapore (CCCS)) that the Transaction does not substantially lessen competition in any market in Singapore within the meaning of Section 54 of the Competition Act 2004; or",
+      "comment": "Replace CMA reference with CCCS (Competition and Consumer Commission of Singapore)"
+    },
+    {
+      "blockId": "b765",
+      "operation": "replace",
+      "diff": true,
+      "newText": "the Buyer receiving confirmation in terms satisfactory to it that there will not be a Phase 2 CCCS review of the Transaction",
+      "comment": "Replace Phase 2 CMA reference with CCCS Phase 2 review"
+    },
+    {
+      "blockId": "b766",
+      "operation": "replace",
+      "diff": false,
+      "newText": "[the Buyer receiving confirmation in terms satisfactory to it that there will not be a Phase 2 CCCS review of the Transaction, subject to the acceptance of commitments by the CCCS under the Competition Act 2004 of Singapore and the terms of those commitments are in all respects satisfactory to the Buyer[. OR ; or OR ,]]",
+      "comment": "Replace UK Enterprise Act provisions with Singapore Competition Act provisions"
+    },
+    {
+      "blockId": "b767",
+      "operation": "replace",
+      "diff": false,
+      "newText": "[completion of a Phase 2 review by the CCCS of the Transaction pursuant to which the Competition and Consumer Commission of Singapore makes a finding that [either:]]",
+      "comment": "Replace CMA Phase 2 inquiry reference with CCCS Phase 2 review"
+    },
+    {
+      "blockId": "b768",
+      "operation": "replace",
+      "diff": true,
+      "newText": "the Transaction is not expected to result in a substantial lessening of competition within any market or markets in Singapore for goods or services",
+      "comment": "Update competition lessening standard for Singapore jurisdiction"
+    },
+    {
+      "blockId": "b769",
+      "operation": "replace",
+      "diff": true,
+      "newText": "the Transaction may be expected to result in a substantial lessening of competition within a market or markets in Singapore for goods or services but that the acceptance of specified commitments by the Buyer would have the effect of remedying, mitigating or preventing that lessening of competition and the terms of such commitments are in all respects acceptable to the Buyer",
+      "comment": "Update competition lessening standard for Singapore jurisdiction"
+    },
+    {
+      "blockId": "b770",
+      "operation": "replace",
+      "diff": false,
+      "newText": "[and, in addition to [paragraph 2(a), paragraph 2(b), paragraph 2(c) or paragraph 2(d) above], [either] the period for making an appeal to the Competition Appeal Board under Section 71 of the Competition Act 2004 of Singapore for the review of a decision of the CCCS in relation to the Transaction having expired without any such appeal being made[ or, where such an appeal has been made, the Competition Appeal Board having dismissed such an appeal.]]",
+      "comment": "Replace UK Competition Appeal Tribunal provisions with Singapore Competition Appeal Board provisions"
+    },
+    {
+      "blockId": "b771",
+      "operation": "delete",
+      "diff": true,
+      "comment": "EU Merger Control Requirements not applicable to Singapore jurisdiction - delete entire section heading"
+    },
+    {
+      "blockId": "b772",
+      "operation": "delete",
+      "diff": true,
+      "comment": "EU Merger Control provisions not applicable to Singapore jurisdiction"
+    },
+    {
+      "blockId": "b773",
+      "operation": "delete",
+      "diff": true,
+      "comment": "EU Merger Control provisions not applicable to Singapore jurisdiction"
+    },
+    {
+      "blockId": "b774",
+      "operation": "delete",
+      "diff": true,
+      "comment": "EU Merger Control provisions not applicable to Singapore jurisdiction"
+    },
+    {
+      "blockId": "b775",
+      "operation": "delete",
+      "diff": true,
+      "comment": "EU Merger Control provisions not applicable to Singapore jurisdiction"
+    },
+    {
+      "blockId": "b776",
+      "operation": "delete",
+      "diff": true,
+      "comment": "EU Merger Control provisions not applicable to Singapore jurisdiction"
+    },
+    {
+      "blockId": "b844",
+      "operation": "replace",
+      "diff": true,
+      "newText": "Section 199 of the Companies Act 1967 of Singapore",
+      "comment": "Replace UK Companies Act 2006 accounting record requirements with Singapore Companies Act provisions"
+    },
+    {
+      "blockId": "b848",
+      "operation": "replace",
+      "diff": true,
+      "newText": "Companies Act 1967 of Singapore",
+      "comment": "Replace UK Companies Acts with Singapore Companies Act"
+    },
+    {
+      "blockId": "b850",
+      "operation": "replace",
+      "diff": false,
+      "newText": "The Accounts have been properly prepared in accordance with Singapore Financial Reporting Standards (SFRS), using appropriate accounting policies and estimation techniques as required by SFRS, and comply with the requirements of the Companies Act 1967 of Singapore and all other applicable laws and regulations in Singapore.",
+      "comment": "Replace UK accounting standards and Companies Act with Singapore Financial Reporting Standards and Companies Act"
+    },
+    {
+      "blockId": "b851",
+      "operation": "replace",
+      "diff": true,
+      "newText": "The Accounts have been audited by an individual or firm registered to act as auditors with ACRA in Singapore and the auditors' report thereon is unmodified.",
+      "comment": "Replace UK auditor registration with Singapore ACRA registration"
+    },
+    {
+      "blockId": "b858",
+      "operation": "replace",
+      "diff": false,
+      "newText": "The Accounts have been filed and laid before the Seller in general meeting in accordance with the relevant requirements of the Companies Act 1967 of Singapore and all other applicable laws and regulations in Singapore.",
+      "comment": "Replace UK Companies Act 2006 accounts filing requirements with Singapore Companies Act requirements"
+    },
+    {
+      "blockId": "b922",
+      "operation": "replace",
+      "diff": true,
+      "newText": "Singapore Standards (SS) and international standards",
+      "comment": "Replace British and EU standards with Singapore standards"
+    },
+    {
+      "blockId": "b933",
+      "operation": "replace",
+      "diff": false,
+      "newText": "The Seller has provided the Buyer with all relevant employment information in relation to each of the Employees and shall notify the Buyer of any changes in that information before the Effective Time.",
+      "comment": "Singapore has no equivalent to TUPE regulation 11 - adapt for general employment information disclosure"
+    },
+    {
+      "blockId": "b935",
+      "operation": "replace",
+      "diff": true,
+      "newText": "whether arising under contract, statute, at common law or in equity or otherwise",
+      "comment": "Remove EU treaty reference as not applicable to Singapore"
+    },
+    {
+      "blockId": "b937",
+      "operation": "replace",
+      "diff": false,
+      "newText": "fully complied with any applicable obligations under the Employment Act 1968 of Singapore and the Industrial Relations Act 1960 of Singapore to inform and consult with trade union or other employee representatives on any matter concerning or arising from this agreement or affecting the Employees;",
+      "comment": "Replace UK TUPE and TULRCA consultation requirements with Singapore Employment Act provisions"
+    },
+    {
+      "blockId": "b939",
+      "operation": "replace",
+      "diff": false,
+      "newText": "paid or will have paid to IRAS (Inland Revenue Authority of Singapore) and the Central Provident Fund Board all taxes, CPF contributions and other levies due in respect of the Employees on account of their employment by the Seller up to and including the Effective Time.",
+      "comment": "Replace HMRC and National Insurance with IRAS and CPF for Singapore"
+    },
+    {
+      "blockId": "b957",
+      "operation": "replace",
+      "diff": false,
+      "newText": "In the [two] years preceding the date of this agreement, in respect of each of the Employees, all holiday pay for periods of annual leave taken under the Employment Act 1968 of Singapore has been calculated and paid in accordance with the applicable provisions of the Employment Act 1968.",
+      "comment": "Replace UK Working Time Regulations and EU Directive with Singapore Employment Act leave provisions"
+    },
+    {
+      "blockId": "b959",
+      "operation": "replace",
+      "diff": true,
+      "newText": "whether in Singapore or elsewhere",
+      "comment": "Replace United Kingdom reference with Singapore"
+    },
+    {
+      "blockId": "b963",
+      "operation": "replace",
+      "diff": false,
+      "newText": "[the Seller has not recognised any trade union or any other organisation of employees or their representatives in respect of any of the Employees OR the Seller has Disclosed all collective agreements, procedural or other agreements or arrangements (whether in writing, oral or by custom and practice and whether binding or not) in existence relating to or relevant to any of the Employees and the current state of any negotiations with any trade union or other organisation of employees or their representatives which might affect the terms of employment, working arrangements or severance payments of any of the Employees under the Industrial Relations Act 1960 of Singapore];",
+      "comment": "Adapt UK trade union recognition warranty for Singapore Industrial Relations Act framework"
+    },
+    {
+      "blockId": "b964",
+      "operation": "replace",
+      "diff": false,
+      "newText": "the Seller is not (and has not in the [two] years preceding the date of this agreement been) involved or likely to be involved in connection with the Business in any industrial or trade dispute (official or unofficial) or negotiation with any trade union or other organisation of employees or their representatives, nor any application for recognition pending before the Industrial Arbitration Court under the Industrial Relations Act 1960 of Singapore, nor is any such industrial or trade dispute, negotiation or application pending, threatened or anticipated; and",
+      "comment": "Replace UK Employment Relations Act 1999 and Central Arbitration Committee with Singapore Industrial Relations Act and Industrial Arbitration Court"
+    },
+    {
+      "blockId": "b965",
+      "operation": "replace",
+      "diff": false,
+      "newText": "in the period of [one] year preceding the date of this agreement, the Seller has not given notice of any retrenchments to the Ministry of Manpower or started consultations under the Employment Act 1968 of Singapore, and the Seller has complied with its obligations under the Employment Act 1968 of Singapore and the Industrial Relations Act 1960 of Singapore and will not before Completion do any such things.]",
+      "comment": "Replace UK TULRCA and TUPE redundancy consultation requirements with Singapore Employment Act provisions"
+    },
+    {
+      "blockId": "b966",
+      "operation": "replace",
+      "diff": false,
+      "newText": "In the period of [ten] years preceding the date of this agreement, the Seller has not (nor has any predecessor or owner of any part of the Business) been a party to any business transfer affecting any of the Employees or any other persons engaged in the Business and no event has occurred which may involve such persons in the future being a party to such a transfer. No such persons have had their terms of employment varied for any reason as a result of or connected with such a transfer.",
+      "comment": "Singapore has no equivalent to TUPE - adapt provision for general employment transfer principles"
+    },
+    {
+      "blockId": "b982",
+      "operation": "replace",
+      "diff": true,
+      "newText": "The Seller has not [in relation to the Business] at any time engaged in any activity, practice or conduct which would constitute an offence under the Prevention of Corruption Act 1960 of Singapore.",
+      "comment": "Replace UK Bribery Act 2010 with Singapore Prevention of Corruption Act"
+    },
+    {
+      "blockId": "b983",
+      "operation": "replace",
+      "diff": false,
+      "newText": "No Associated Person of the Seller [in relation to the Business] has corruptly given or offered any gratification to another person (within the meaning of the Prevention of Corruption Act 1960 of Singapore) intending to obtain or retain business or an advantage in the conduct of business for the Business, and the Seller has operated and has in place adequate procedures designed to prevent their Associated Persons from undertaking any such conduct.",
+      "comment": "Replace UK Bribery Act 2010 section 7 provisions with Singapore Prevention of Corruption Act provisions"
+    },
+    {
+      "blockId": "b984",
+      "operation": "replace",
+      "diff": true,
+      "newText": "any offence or alleged offence under the Prevention of Corruption Act 1960 of Singapore in connection with the Business",
+      "comment": "Replace UK Bribery Act 2010 reference with Singapore Prevention of Corruption Act"
+    },
+    {
+      "blockId": "b985",
+      "operation": "replace",
+      "diff": true,
+      "newText": "The Seller has not [in relation to the Business] been excluded from participation in a government contract or procurement as a result of being convicted of corruption under the Prevention of Corruption Act 1960 of Singapore.]",
+      "comment": "Adapt UK public procurement exclusion provision for Singapore Government Procurement context"
+    },
+    {
+      "blockId": "b993",
+      "operation": "delete",
+      "diff": true,
+      "comment": "EU State Aid provisions under Article 108 TFEU not applicable to Singapore - delete provision"
+    },
+    {
+      "blockId": "b518",
+      "operation": "replace",
+      "diff": true,
+      "newText": "it shall duly observe all its obligations as an organisation under the Personal Data Protection Act 2012 (PDPA) which arise in connection with processing Customer Data and Employee Data;",
+      "comment": "Singapore jurisdiction: Replace UK Data Protection Act 1998 with Singapore Personal Data Protection Act 2012"
+    },
+    {
+      "blockId": "b519",
+      "operation": "replace",
+      "diff": true,
+      "newText": "it shall comply with the Data Protection Provisions set out in the PDPA and, in particular, it shall collect, use and disclose Customer Data and Employee Data only for purposes that a reasonable person would consider appropriate in the circumstances and in accordance with the Consent Obligation for the purpose of the continued provision of details of the [product(s)] [and] [services] to the Customers and in connection with the employment of the Data Employees and in accordance with the terms and conditions set out in this agreement;",
+      "comment": "Singapore jurisdiction: Replace UK DPA 1998 Data Protection Principles with Singapore PDPA Data Protection Provisions"
+    },
+    {
+      "blockId": "b521",
+      "operation": "replace",
+      "diff": true,
+      "newText": "it shall respond to any request made by a Data Employee or Customer in relation to the provision of details of the [product(s)] [and] [services] in accordance with the Access and Correction Obligations under the PDPA; and",
+      "comment": "Singapore jurisdiction: Replace UK data subject rights under DPA 1998 with Singapore PDPA Access and Correction Obligations"
+    },
+    {
+      "blockId": "b522",
+      "operation": "replace",
+      "diff": true,
+      "newText": "it shall comply with all registration and notification requirements under the PDPA, including registration with the Personal Data Protection Commission where required, appropriate to the performance of its obligations under this agreement.",
+      "comment": "Singapore jurisdiction: Replace UK DPA 1998 notification requirements with Singapore PDPC registration requirements"
+    },
+    {
+      "blockId": "b523",
+      "operation": "replace",
+      "diff": true,
+      "newText": "The Buyer shall indemnify the Seller against all Losses suffered or incurred by the Seller arising out of or in connection with processing the Customer Data or Employee Data by the Buyer, including those arising out of any third party demand, claim or action, or any breach of contract, negligence, fraud, wilful misconduct, breach of statutory duty or non-compliance with the data protection obligations set out in this clause 20 or any provision of the PDPA by the Buyer, its employees, agents or sub-contractors.]",
+      "comment": "Singapore jurisdiction: Replace UK DPA 1998 with Singapore PDPA"
+    },
+    {
+      "blockId": "b551",
+      "operation": "replace",
+      "diff": true,
+      "newText": "not more than [NUMBER]% of any class of shares or securities of any company traded on a securities exchange (within the meaning of the Securities and Futures Act 2001).",
+      "comment": "Singapore jurisdiction: Replace UK FSMA 2000 with Singapore Securities and Futures Act 2001"
+    },
+    {
+      "blockId": "b651",
+      "operation": "replace",
+      "diff": true,
+      "newText": "Interest under this clause will accrue each day at 4% a year above the Singapore Overnight Rate Average (SORA) published by the Monetary Authority of Singapore from time to time, but at 4% a year for any period when SORA is below 0%.",
+      "comment": "Singapore jurisdiction: Replace Bank of England base rate with Singapore SORA (the MAS benchmark rate)"
+    },
+    {
+      "blockId": "b658",
+      "operation": "replace",
+      "diff": true,
+      "newText": "Unless it expressly states otherwise, this agreement does not give rise to any rights under the Contracts (Rights of Third Parties) Act (Cap. 53B) to enforce any term of this agreement.",
+      "comment": "Singapore jurisdiction: Replace UK Contracts (Rights of Third Parties) Act 1999 with Singapore equivalent"
+    },
+    {
+      "blockId": "b680",
+      "operation": "replace",
+      "diff": true,
+      "newText": "This agreement and any dispute or claim (including non-contractual disputes or claims) arising out of or in connection with it or its subject matter or formation shall be governed by and construed in accordance with the laws of the Republic of Singapore.",
+      "comment": "Singapore jurisdiction: Change governing law from England and Wales to Singapore"
+    },
+    {
+      "blockId": "b681",
+      "operation": "replace",
+      "diff": true,
+      "newText": "Each party irrevocably agrees that the courts of the Republic of Singapore shall have [exclusive OR non-exclusive] jurisdiction to settle any dispute or claim (including non-contractual disputes or claims) arising out of or in connection with this agreement or its subject matter or formation.",
+      "comment": "Singapore jurisdiction: Change court jurisdiction from England and Wales to Singapore"
+    },
+    {
+      "blockId": "b1089",
+      "operation": "replace",
+      "diff": true,
+      "comment": "Adapt generic reference to data protection laws to specifically reference Singapore's Personal Data Protection Act 2012 (PDPA) as the primary governing statute, while maintaining flexibility for other applicable laws."
+    },
+    {
+      "blockId": "b1090",
+      "operation": "replace",
+      "diff": true,
+      "comment": "Update to reference Singapore's PDPA data breach notification framework (introduced in 2020), which requires mandatory notification to the PDPC and affected individuals for notifiable data breaches. Replaces generic reference with specific Singapore regulatory requirements."
+    }
+  ]
+}

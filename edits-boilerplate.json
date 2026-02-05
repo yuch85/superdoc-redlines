@@ -1,0 +1,31 @@
+{
+  "version": "0.2.0",
+  "agent": "boilerplate-agent",
+  "blockRange": { "start": "b1231", "end": "b1317" },
+  "notes": {
+    "observation": "The assigned block range (b1231-b1317) contains VAT warranties (b1231-b1244), pension transfer provisions/Schedule 14 (b1245-b1306), and signature blocks (b1307-b1317). The main governing law, jurisdiction, and boilerplate provisions are located OUTSIDE this range: governing law clause (b680), jurisdiction clause (b681), third party rights referencing UK Act (b658), and interest rate clause referencing Bank of England (b651). The pension provisions in the assigned range contain numerous UK-specific statutory references (Pensions Act 1995, Pensions Act 2004, Pension Schemes Act 1993, Finance Act 2004) that would require substantive legal adaptation beyond the scope of a simple jurisdiction change.",
+    "outOfRangeClausesRequiringAttention": [
+      {
+        "blockId": "b651",
+        "issue": "References 'Bank of England's base rate' - should reference Singapore benchmark rate (e.g., SORA)",
+        "original": "Interest under this clause will accrue each day at 4% a year above the Bank of England's base rate from time to time, but at 4% a year for any period when that base rate is below 0%."
+      },
+      {
+        "blockId": "b658",
+        "issue": "References 'Contracts (Rights of Third Parties) Act 1999' - should reference Singapore's Contracts (Rights of Third Parties) Act 2001",
+        "original": "Unless it expressly states otherwise, this agreement does not give rise to any rights under the Contracts (Rights of Third Parties) Act 1999 to enforce any term of this agreement."
+      },
+      {
+        "blockId": "b680",
+        "issue": "Governing law clause references 'law of England and Wales' - should reference 'law of Singapore'",
+        "original": "This agreement and any dispute or claim (including non-contractual disputes or claims) arising out of or in connection with it or its subject matter or formation  shall be governed by and construed in accordance with the law of England and Wales."
+      },
+      {
+        "blockId": "b681",
+        "issue": "Jurisdiction clause references 'courts of England and Wales' - should reference 'courts of Singapore'",
+        "original": "Each party irrevocably agrees that the courts of England and Wales shall have [exclusive OR non-exclusive] jurisdiction to settle any dispute or claim (including non-contractual disputes or claims) arising out of or in connection with this agreement or its subject matter or formation."
+      }
+    ]
+  },
+  "edits": []
+}

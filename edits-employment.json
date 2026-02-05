@@ -1,0 +1,103 @@
+{
+  "version": "0.2.0",
+  "agent": "employment-agent",
+  "blockRange": { "start": "b449", "end": "b476" },
+  "edits": [
+    {
+      "blockId": "b450",
+      "type": "replace",
+      "original": "The parties agree that the sale and purchase pursuant to this agreement will constitute a relevant transfer for the purposes of TUPE and, accordingly, that it will not operate so as to terminate the contracts of employment of any of the Employees [or any collective agreements with trade unions recognised by the Seller in respect of the Employees]. Such contracts shall be transferred to the Buyer pursuant to TUPE with effect from the Effective Time.",
+      "replacement": "The parties acknowledge that under Singapore law there is no automatic transfer of employment upon a business sale. Accordingly, the Seller shall procure that each Employee is given the opportunity to accept an offer of employment from the Buyer on terms no less favourable than their existing terms of employment with the Seller. Any Employee who accepts such offer and provides written consent to the transfer of their employment shall become an employee of the Buyer with effect from the Effective Time (each such Employee, a \"Transferring Employee\"). The employment of any Employee who does not accept the Buyer's offer or does not consent to the transfer shall remain with the Seller and shall not transfer to the Buyer.",
+      "diff": false,
+      "rationale": "Singapore does not have TUPE or equivalent automatic transfer legislation. Employment transfer requires employee consent and new employment offers from the Buyer. This is a fundamental restructuring to reflect Singapore's consensual transfer framework under the Employment Act 1968."
+    },
+    {
+      "blockId": "b452",
+      "type": "replace",
+      "original": "that it has complied with, and shall up to and including the Effective Time, comply with all of its obligations and those of any of its predecessors (whether or not legally binding or in respect of which it would be expected to comply by any regulatory or other body to which it is subject) due to or in connection with the Employees or any body representing them (or any of the said obligations the Seller would have had under or in connection with such contracts but for TUPE);",
+      "replacement": "that it has complied with, and shall up to and including the Effective Time, comply with all of its obligations under the Employment Act 1968 and those of any of its predecessors (whether or not legally binding or in respect of which it would be expected to comply by any regulatory or other body to which it is subject) due to or in connection with the Employees or any body representing them;",
+      "diff": false,
+      "rationale": "Replaced reference to TUPE with reference to Singapore's Employment Act 1968, which governs employment relationships in Singapore."
+    },
+    {
+      "blockId": "b453",
+      "type": "replace",
+      "original": "that it has paid and shall pay all sums due to or in relation to the Employees up to and including the Effective Time (whether arising under common law, statute, equity or otherwise) including all salaries, wages, bonus or commission, expenses, holiday pay, National Insurance and pension contributions, liability to Taxation and other sums payable in respect of any period up to the Effective Time;",
+      "replacement": "that it has paid and shall pay all sums due to or in relation to the Employees up to and including the Effective Time (whether arising under common law, statute, equity or otherwise) including all salaries, wages, bonus or commission, expenses, annual leave pay, CPF contributions, Skills Development Levy, liability to Taxation and other sums payable in respect of any period up to the Effective Time;",
+      "diff": false,
+      "rationale": "Replaced 'National Insurance' with 'CPF contributions' (Central Provident Fund) which is Singapore's mandatory social security savings scheme. Also replaced 'holiday pay' with 'annual leave pay' and added 'Skills Development Levy' which is a Singapore-specific statutory contribution."
+    },
+    {
+      "blockId": "b454",
+      "type": "replace",
+      "original": "that it has complied and shall comply in all respects with its obligations under regulation 11 of TUPE; ",
+      "replacement": "that it has complied and shall comply in all respects with its obligations to provide employee liability information to the Buyer, including but not limited to details of each Employee's terms and conditions of employment, any disciplinary or grievance proceedings, and any claims or potential claims;",
+      "diff": false,
+      "rationale": "Removed reference to TUPE regulation 11 and replaced with substantive obligation to provide employee liability information, which reflects the commercial intent of the original provision without relying on UK-specific legislation."
+    },
+    {
+      "blockId": "b456",
+      "type": "replace",
+      "original": "that it has complied and shall comply in all respects with regulation 13 of TUPE and Part IV of TULRCA (and that it has provided and shall provide to the Buyer such information as the Buyer may request in writing in order to verify such compliance) [and that it has consented to, and co-operated with, pre-transfer consultation by the transferee in accordance with Part IV of TULRCA, if required];",
+      "replacement": "that it has complied and shall comply in all respects with its obligations under the Industrial Relations Act 1960 in respect of any recognised trade unions and with the Employment Act 1968 in respect of the Employees (and that it has provided and shall provide to the Buyer such information as the Buyer may request in writing in order to verify such compliance), and that it has informed and consulted with the Employees regarding the proposed transfer and the Buyer's offer of employment;",
+      "diff": false,
+      "rationale": "Replaced references to TUPE regulation 13 and TULRCA (UK trade union legislation) with references to Singapore's Industrial Relations Act 1960 and Employment Act 1968. Also adapted consultation requirements to reflect Singapore practice."
+    },
+    {
+      "blockId": "b461",
+      "type": "replace",
+      "original": "to indemnify the Buyer against all Losses which the Buyer may suffer, sustain, incur, pay or be put to arising from:",
+      "replacement": "to indemnify the Buyer against all Losses which the Buyer may suffer, sustain, incur, pay or be put to arising from any of the following:",
+      "diff": false,
+      "rationale": "Minor grammatical adjustment for clarity in the Singapore-adapted context."
+    },
+    {
+      "blockId": "b465",
+      "type": "replace",
+      "original": "the transfer to the Buyer, by virtue of TUPE, of the employment of any employee of the Seller other than the Employees;",
+      "replacement": "any claim by any employee of the Seller (other than the Employees) that their employment has transferred to the Buyer or that they are entitled to employment with the Buyer;",
+      "diff": false,
+      "rationale": "Removed TUPE reference. In Singapore, since there is no automatic transfer, this indemnity covers any claims by non-designated employees who may assert employment rights against the Buyer."
+    },
+    {
+      "blockId": "b466",
+      "type": "replace",
+      "original": "any act or omission before the Effective Time which, by virtue of TUPE, is deemed to be an act or omission of the Buyer; and",
+      "replacement": "any act or omission of the Seller before the Effective Time in relation to the Employees or their employment; and",
+      "diff": false,
+      "rationale": "Removed TUPE reference. Since Singapore does not have automatic liability transfer, the indemnity is restructured to cover Seller's pre-transfer acts or omissions directly."
+    },
+    {
+      "blockId": "b467",
+      "type": "replace",
+      "original": "the Seller's failure to comply with its obligations under regulation 13 of TUPE.",
+      "replacement": "the Seller's failure to comply with its obligations under this clause 14 or under applicable Singapore employment legislation including the Employment Act 1968 and the Industrial Relations Act 1960.",
+      "diff": false,
+      "rationale": "Replaced specific TUPE regulation 13 reference with references to Singapore employment legislation and the contractual obligations under this clause."
+    },
+    {
+      "blockId": "b468",
+      "type": "replace",
+      "original": "If any contract of employment or engagement or collective agreement not Disclosed to the Buyer has effect as if originally made between the Buyer and any person or body or their representatives as a result of the provisions of TUPE or otherwise:",
+      "replacement": "If any contract of employment or engagement or collective agreement not Disclosed to the Buyer purports to have effect between the Buyer and any person or body or their representatives, or if any Employee or other person asserts that their employment has transferred to or arises with the Buyer:",
+      "diff": false,
+      "rationale": "Reworded to remove TUPE reference. Since Singapore has no automatic transfer, this clause addresses situations where undisclosed persons claim employment with the Buyer."
+    },
+    {
+      "blockId": "b473",
+      "type": "replace",
+      "original": "Without prejudice to the other provisions of this clause 14, the Seller shall, at its own expense, give the Buyer such assistance as the Buyer may reasonably require to contest any demand or claim by any person employed or engaged in the Business at or before the Effective Time or their representatives resulting from or in connection with this agreement, subject always to the Seller's obligations under the DPA 1998.",
+      "replacement": "Without prejudice to the other provisions of this clause 14, the Seller shall, at its own expense, give the Buyer such assistance as the Buyer may reasonably require to contest any demand or claim by any person employed or engaged in the Business at or before the Effective Time or their representatives resulting from or in connection with this agreement, subject always to the Seller's obligations under the Personal Data Protection Act 2012.",
+      "diff": false,
+      "rationale": "Replaced 'DPA 1998' (UK Data Protection Act 1998) with 'Personal Data Protection Act 2012' which is Singapore's data protection legislation (PDPA)."
+    },
+    {
+      "blockId": "b476",
+      "type": "replace",
+      "original": "The Seller's Scheme shall be dealt with in accordance with the provisions of Schedule 14.",
+      "replacement": "The Seller's CPF contributions and any supplementary retirement or pension schemes shall be dealt with in accordance with the provisions of Schedule 14, and the Seller shall ensure all CPF contributions due in respect of the Employees up to the Effective Time have been paid in accordance with the Central Provident Fund Act.",
+      "diff": false,
+      "rationale": "Adapted to reference Singapore's CPF framework. In Singapore, CPF is the primary mandatory retirement savings scheme, so the provision is updated to ensure CPF compliance while retaining reference to any supplementary schemes that may exist."
+    }
+  ]
+}

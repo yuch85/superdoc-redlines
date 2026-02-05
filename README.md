@@ -1,8 +1,24 @@
+---
+name: superdoc-redlines
+type: reference-documentation
+description: Node.js CLI tool for applying tracked changes and comments to DOCX files
+version: 0.2.0
+agent_doc: SKILL.md
+commands: [extract, read, validate, apply, merge, parse-edits, to-markdown]
+---
+
 # superdoc-redlines
 
 A Node.js CLI tool for applying tracked changes and comments to DOCX files using [SuperDoc](https://superdoc.dev) in headless mode.
 
 Designed for use by AI agents (Claude, GPT, etc.) in IDE environments like Cursor, VS Code, or Claude Code.
+
+> **For AI Agents:** See [SKILL.md](./SKILL.md) for the concise task-oriented guide with decision flows, constraints, and expected outputs.
+
+## Example Skills
+
+- [Contract Review Skill](./skills/CONTRACT-REVIEW-SKILL.md)
+- [Contract Review Agentic Skill](./skills/CONTRACT-REVIEW-AGENTIC-SKILL.md)
 
 ## Features
 
@@ -35,6 +51,8 @@ node superdoc-redline.mjs validate --input contract.docx --edits edits.json
 # 5. Apply edits with track changes
 node superdoc-redline.mjs apply --input contract.docx --output redlined.docx --edits edits.json
 ```
+
+---
 
 ## CLI Commands
 
@@ -143,7 +161,7 @@ The apply command automatically validates edits before applying, including:
 - Block ID existence checks
 - Required field validation (newText for replace, etc.)
 - **newText truncation detection** - Warns if newText appears truncated or corrupted
-- **Content corruption detection** - Detects patterns like "4.3S$" that suggest LLM output issues
+- **Content corruption detection** - Detects patterns that suggest LLM output issues
 
 Use `--strict` to fail the apply if any warnings are detected.
 
@@ -200,6 +218,69 @@ node superdoc-redline.mjs to-markdown -i edits.json -o edits.md
 |--------|-------------|
 | `-i, --input <file>` | Input JSON file (.json) (required) |
 | `-o, --output <file>` | Output markdown file (.md) (required) |
+
+---
+
+## Edit Format (v0.2.0)
+
+> **AI Agents:** See [SKILL.md](./SKILL.md) for JSON Schema, common mistakes, and critical constraints.
+
+```json
+{
+  "version": "0.2.0",
+  "author": {
+    "name": "AI Counsel",
+    "email": "ai@firm.com"
+  },
+  "edits": [
+    {
+      "blockId": "b001",
+      "operation": "replace",
+      "newText": "Modified clause text",
+      "comment": "Optional comment",
+      "diff": true
+    },
+    {
+      "blockId": "b015",
+      "operation": "delete",
+      "comment": "Removing redundant clause"
+    },
+    {
+      "blockId": "b020",
+      "operation": "comment",
+      "comment": "Needs legal review"
+    },
+    {
+      "afterBlockId": "b025",
+      "operation": "insert",
+      "text": "New paragraph content",
+      "type": "paragraph"
+    }
+  ]
+}
+```
+
+### Edit Operations
+
+| Operation | Required Fields | Optional Fields | Description |
+|-----------|-----------------|-----------------|-------------|
+| `replace` | `blockId`, `newText` | `comment`, `diff` | Replace block content |
+| `delete` | `blockId` | `comment` | Delete block entirely |
+| `comment` | `blockId`, `comment` | - | Add comment to block |
+| `insert` | `afterBlockId`, `text` | `type`, `level`, `comment` | Insert new block |
+
+### Field Reference
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `blockId` | string | Target block (UUID or seqId like `"b001"`) |
+| `afterBlockId` | string | Insert position (UUID or seqId) |
+| `newText` | string | Replacement text for `replace` operation |
+| `text` | string | New block text for `insert` operation |
+| `comment` | string | Comment text to attach |
+| `diff` | boolean | Use word-level diff for minimal changes (default: `true`) |
+| `type` | string | Block type for insert: `paragraph\|heading\|listItem` |
+| `level` | number | Heading level for insert (1-6) |
 
 ---
 
@@ -313,78 +394,6 @@ To replace the entire block content (useful for complete rewrites):
   "diff": false
 }
 ```
-
----
-
-## Edit Format (v0.2.0)
-
-```json
-{
-  "version": "0.2.0",
-  "author": {
-    "name": "AI Counsel",
-    "email": "ai@firm.com"
-  },
-  "edits": [
-    {
-      "blockId": "b001",
-      "operation": "replace",
-      "newText": "Modified clause text",
-      "comment": "Optional comment",
-      "diff": true
-    },
-    {
-      "blockId": "b015",
-      "operation": "delete",
-      "comment": "Removing redundant clause"
-    },
-    {
-      "blockId": "b020",
-      "operation": "comment",
-      "comment": "Needs legal review"
-    },
-    {
-      "afterBlockId": "b025",
-      "operation": "insert",
-      "text": "New paragraph content",
-      "type": "paragraph"
-    }
-  ]
-}
-```
-
-### Edit Operations
-
-| Operation | Required Fields | Optional Fields | Description |
-|-----------|-----------------|-----------------|-------------|
-| `replace` | `blockId`, `newText` | `comment`, `diff` | Replace block content |
-| `delete` | `blockId` | `comment` | Delete block entirely |
-| `comment` | `blockId`, `comment` | - | Add comment to block |
-| `insert` | `afterBlockId`, `text` | `type`, `level`, `comment` | Insert new block |
-
-### Field Reference
-
-| Field | Type | Description |
-|-------|------|-------------|
-| `blockId` | string | Target block (UUID or seqId like `"b001"`) |
-| `afterBlockId` | string | Insert position (UUID or seqId) |
-| `newText` | string | Replacement text for `replace` operation |
-| `text` | string | New block text for `insert` operation |
-| `comment` | string | Comment text to attach |
-| `diff` | boolean | Use word-level diff for minimal changes (default: `true`) |
-| `type` | string | Block type for insert: `paragraph\|heading\|listItem` |
-| `level` | number | Heading level for insert (1-6) |
-
-### Common Field Name Errors
-
-These incorrect field names will cause validation to fail:
-
-| Wrong | Correct | Notes |
-|-------|---------|-------|
-| `searchText` | - | Not used - edits are block-based, not search-based |
-| `replaceText` | `newText` | Use `newText` for replacement content |
-| `type` | `operation` | Use `operation` for the edit type |
-| `oldText` | - | Not used in edits (used internally for validation) |
 
 ---
 
@@ -515,45 +524,6 @@ node superdoc-redline.mjs apply \
 
 ---
 
-## Breaking Changes from v1.x
-
-### Version Bump
-
-Package version changed from `1.x` to `0.2.0` to signal breaking API changes.
-
-### Removed Features
-
-| v1.x Feature | Status | Migration |
-|--------------|--------|-----------|
-| Text-based `find`/`replace` edits | **REMOVED** | Use ID-based `blockId` edits |
-| `--inline` JSON argument | **REMOVED** | Use `--edits` file path |
-| `--config` option | **REMOVED** | Use subcommand + `--edits` |
-| Fuzzy text matching for edits | **INTERNAL** | Now used only for IR extraction |
-| Clause targeting by text | **REMOVED** | Use `blockId` from extracted IR |
-
-### New CLI Structure
-
-```bash
-# OLD (v1.x) - Text-based
-node superdoc-redline.mjs --config edits.json
-node superdoc-redline.mjs --inline '{"input":"doc.docx","edits":[...]}'
-
-# NEW (v0.2.0) - Subcommands
-node superdoc-redline.mjs extract --input doc.docx
-node superdoc-redline.mjs read --input doc.docx
-node superdoc-redline.mjs validate --input doc.docx --edits edits.json
-node superdoc-redline.mjs apply --input doc.docx --output out.docx --edits edits.json
-node superdoc-redline.mjs merge edits1.json edits2.json --output merged.json
-```
-
-### Migration Path
-
-1. Extract IR to get block IDs: `extract --input doc.docx`
-2. Rewrite edits to use `blockId` instead of `find`
-3. Use `apply` subcommand instead of root command
-
----
-
 ## Module API
 
 For programmatic use:
@@ -641,6 +611,45 @@ const result = await mergeEditFiles(['a.json', 'b.json'], {
 
 ---
 
+## Breaking Changes from v1.x
+
+### Version Bump
+
+Package version changed from `1.x` to `0.2.0` to signal breaking API changes.
+
+### Removed Features
+
+| v1.x Feature | Status | Migration |
+|--------------|--------|-----------|
+| Text-based `find`/`replace` edits | **REMOVED** | Use ID-based `blockId` edits |
+| `--inline` JSON argument | **REMOVED** | Use `--edits` file path |
+| `--config` option | **REMOVED** | Use subcommand + `--edits` |
+| Fuzzy text matching for edits | **INTERNAL** | Now used only for IR extraction |
+| Clause targeting by text | **REMOVED** | Use `blockId` from extracted IR |
+
+### New CLI Structure
+
+```bash
+# OLD (v1.x) - Text-based
+node superdoc-redline.mjs --config edits.json
+node superdoc-redline.mjs --inline '{"input":"doc.docx","edits":[...]}'
+
+# NEW (v0.2.0) - Subcommands
+node superdoc-redline.mjs extract --input doc.docx
+node superdoc-redline.mjs read --input doc.docx
+node superdoc-redline.mjs validate --input doc.docx --edits edits.json
+node superdoc-redline.mjs apply --input doc.docx --output out.docx --edits edits.json
+node superdoc-redline.mjs merge edits1.json edits2.json --output merged.json
+```
+
+### Migration Path
+
+1. Extract IR to get block IDs: `extract --input doc.docx`
+2. Rewrite edits to use `blockId` instead of `find`
+3. Use `apply` subcommand instead of root command
+
+---
+
 ## Testing
 
 ```bash
@@ -674,6 +683,19 @@ Tests use Node.js built-in test runner (`node:test`):
 
 ---
 
+## Shout-outs
+
+This tool wouldn't exist without [**SuperDoc**](https://superdoc.dev) by [Harbour](https://harbour.enterprises) — a truly exceptional document editing library that makes programmatic Word document manipulation not just possible, but elegant. Their headless mode is a game-changer for AI-driven workflows.
+
+We also tip our hats to the giants SuperDoc stands on:
+
+- [**Marijn Haverbeke**](https://marijnhaverbeke.nl/) and the community behind [**ProseMirror**](https://prosemirror.net/) — the foundation that makes rich text editing on the web possible
+- [**Tiptap**](https://tiptap.dev/) and the many amazing editors of the web — from which we all draw inspiration
+- These wonderful projects that SuperDoc uses: [Yjs](https://yjs.dev/), [FontAwesome](https://fontawesome.com/), [JSZip](https://stuk.github.io/jszip/), and [Vite](https://vitejs.dev/)
+- [**diff-match-patch**](https://github.com/google/diff-match-patch) by Google — enabling our word-level diff magic
+
+---
+
 ## License
 
-MIT
+Apache License 2.0. This library depends on Superdoc, which is licensed under the GNU Affero General Public License v3.0 (AGPL-3.0).

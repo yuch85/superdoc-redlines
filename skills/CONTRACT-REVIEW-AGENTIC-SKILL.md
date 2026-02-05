@@ -305,7 +305,7 @@ Sub-agents must respect constraints from the Context Document:
 
 - **Core methodology:** CONTRACT-REVIEW-SKILL.md
 - **Edit format:** See "Edit File Format Reference" in CONTRACT-REVIEW-SKILL.md
-- **Jurisdiction mappings:** reference/uk-to-singapore.md
+- **Jurisdiction mappings:** Internal reference (not published): `tests_and_others/reference/uk-to-singapore.md`
 
 ---
 
