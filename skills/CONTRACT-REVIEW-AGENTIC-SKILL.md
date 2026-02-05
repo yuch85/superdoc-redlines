@@ -7,21 +7,29 @@ description: Orchestrator-subagent methodology for parallel contract review usin
 
 ## Overview
 
-This skill enables **parallel contract review** using an orchestrator-subagent architecture. The orchestrator coordinates multiple sub-agents working on different sections simultaneously, then merges their edits.
+This skill enables **multi-agent contract review** using an orchestrator-subagent architecture. The orchestrator coordinates multiple sub-agents working on different sections, then merges their edits.
+
+**Note:** In Claude Code, sub-agents execute **sequentially** (not in parallel). The workflow is the same, just not parallelized. The organizational benefits remain: clear separation of concerns, smaller focused edit files, and explicit merge/conflict handling.
 
 **Prerequisites:** Familiarity with **CONTRACT-REVIEW-SKILL.md** (core methodology, edit formats, two-pass workflow).
 
 > **⚠️ Examples Are Illustrative Only**
-> 
+>
 > Examples use UK → Singapore conversion. The architecture applies to any contract review task.
 
-### When to Use
+### When to Use Multi-Agent Workflow
 
 | Document Size | Approach |
 |---------------|----------|
-| < 50K tokens | Single-agent (CONTRACT-REVIEW-SKILL.md) |
+| < 30K tokens | Single-agent may be sufficient |
+| 30K - 50K tokens | 2-3 sub-agents recommended for organizational clarity |
 | 50K - 150K tokens | 2-4 sub-agents |
 | > 150K tokens | 4-8 sub-agents |
+
+**Note:** Multi-agent workflow provides benefits even for smaller documents:
+- Organizational clarity (separating definitions from warranties from schedules)
+- Reduced context window pressure
+- Clearer edit attribution and review
 
 ---
 
@@ -31,27 +39,39 @@ This skill enables **parallel contract review** using an orchestrator-subagent a
 ┌─────────────────────────────────────────────────────────────────────┐
 │                        ORCHESTRATOR AGENT                           │
 │  - Discovery Pass (read all chunks, build Context Document)         │
-│  - Work decomposition (assign block ranges to sub-agents)          │
+│  - Work decomposition (assign block ranges to sub-agents)           │
 │  - Merge results and validate                                       │
 └─────────────────────────────────────────────────────────────────────┘
                                  │
-           ┌─────────────────────┼─────────────────────┐
-           ▼                     ▼                     ▼
-    ┌─────────────┐       ┌─────────────┐       ┌─────────────┐
-    │ SUB-AGENT A │       │ SUB-AGENT B │       │ SUB-AGENT C │
-    │ b001-b300   │       │ b301-b600   │       │ b601-b900   │
-    └──────┬──────┘       └──────┬──────┘       └──────┬──────┘
-           │                     │                     │
-           ▼                     ▼                     ▼
-    edits-a.json          edits-b.json          edits-c.json
-           │                     │                     │
-           └─────────────────────┼─────────────────────┘
+                                 ▼
+                    ┌─────────────────────────┐
+                    │     SUB-AGENT A         │
+                    │     b001-b300           │ ──► edits-a.json
+                    │     (Definitions)       │
+                    └─────────────────────────┘
+                                 │
+                                 ▼
+                    ┌─────────────────────────┐
+                    │     SUB-AGENT B         │
+                    │     b301-b600           │ ──► edits-b.json
+                    │     (Provisions)        │
+                    └─────────────────────────┘
+                                 │
+                                 ▼
+                    ┌─────────────────────────┐
+                    │     SUB-AGENT C         │
+                    │     b601-b900           │ ──► edits-c.json
+                    │     (Warranties)        │
+                    └─────────────────────────┘
+                                 │
                                  ▼
                     ┌─────────────────────────┐
                     │    MERGE & VALIDATE     │
                     │    → APPLY              │
                     └─────────────────────────┘
 ```
+
+**Note:** In Claude Code, sub-agents execute sequentially as shown. The organizational structure provides the same benefits as parallel execution.
 
 ---
 
@@ -462,9 +482,24 @@ Consider running orchestrator and sub-agents as separate sessions to avoid conte
 Before creating edits for a block:
 1. Read the relevant chunk containing that block
 2. Verify the block ID matches expected content
-3. Use grep on contract-ir.json if uncertain: `grep -B2 "expected text" contract-ir.json`
+3. Use the `find-block` command or grep to verify:
+
+```bash
+# Find blocks containing specific text
+node superdoc-redline.mjs find-block --input contract.docx --text "VAT"
+
+# Or use grep on IR file
+grep -B2 "expected text" contract-ir.json
+```
 
 Block IDs can be off by 5-10 positions from estimates. **Always verify.**
+
+### Best Practices for Sub-Agents
+
+1. **Before creating any edit**, verify the block exists and contains expected text
+2. **Use find-block command** when uncertain about block locations
+3. **Report verification failures** back to orchestrator for reassignment
+4. **Include verification notes** in edit comments for traceability
 
 ---
 

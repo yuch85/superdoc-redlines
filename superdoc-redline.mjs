@@ -423,6 +423,118 @@ program
   });
 
 // ============================================================================
+// Command: find-block
+// ============================================================================
+
+program
+  .command('find-block')
+  .description('Find blocks by text content')
+  .requiredOption('-i, --input <path>', 'Input DOCX file or IR JSON file')
+  .option('-t, --text <text>', 'Text to search for (case-insensitive)')
+  .option('-r, --regex <pattern>', 'Regex pattern to search for')
+  .option('-c, --context <chars>', 'Context characters to show around match', parseIntArg, 50)
+  .option('--max-results <count>', 'Maximum number of results', parseIntArg, 20)
+  .action(async (options) => {
+    try {
+      const inputPath = resolve(options.input);
+
+      // Determine if input is IR JSON or DOCX
+      let ir;
+      if (options.input.endsWith('.json')) {
+        const irJson = await readFile(inputPath, 'utf-8');
+        ir = JSON.parse(irJson);
+      } else {
+        ir = await extractDocumentIR(inputPath, { format: 'full' });
+      }
+
+      // Build search pattern
+      let searchFn;
+      if (options.regex) {
+        const regex = new RegExp(options.regex, 'gi');
+        searchFn = (text) => regex.test(text);
+      } else if (options.text) {
+        const lowerText = options.text.toLowerCase();
+        searchFn = (text) => text.toLowerCase().includes(lowerText);
+      } else {
+        console.error('Error: Either --text or --regex is required');
+        process.exit(1);
+      }
+
+      // Search blocks
+      const results = [];
+      for (const block of ir.blocks) {
+        if (searchFn(block.text || '')) {
+          results.push({
+            seqId: block.seqId,
+            id: block.id,
+            type: block.type,
+            text: block.text,
+            preview: truncateWithContext(
+              block.text,
+              options.text || options.regex,
+              options.context
+            )
+          });
+
+          if (results.length >= options.maxResults) {
+            break;
+          }
+        }
+      }
+
+      // Output results
+      if (results.length === 0) {
+        console.log('No blocks found matching the search criteria.');
+      } else {
+        console.log(`Found ${results.length} block(s):\n`);
+        for (const result of results) {
+          console.log(`[${result.seqId}] (${result.type})`);
+          console.log(`  ID: ${result.id}`);
+          console.log(`  Preview: ${result.preview}`);
+          console.log('');
+        }
+      }
+
+    } catch (error) {
+      console.error('Error:', error.message);
+      process.exit(1);
+    }
+  });
+
+/**
+ * Truncate text showing context around a search term.
+ * @param {string} text - Full text
+ * @param {string} searchTerm - Term to find context around
+ * @param {number} contextChars - Characters to show on each side
+ * @returns {string}
+ */
+function truncateWithContext(text, searchTerm, contextChars) {
+  if (!text) return '';
+
+  // Find the search term position (case-insensitive)
+  const lowerText = text.toLowerCase();
+  const lowerTerm = searchTerm?.toLowerCase() || '';
+  const idx = lowerText.indexOf(lowerTerm);
+
+  if (idx === -1 || !searchTerm) {
+    // No match found, just truncate from start
+    if (text.length <= contextChars * 2) return text;
+    return text.slice(0, contextChars * 2) + '...';
+  }
+
+  // Calculate context window
+  const start = Math.max(0, idx - contextChars);
+  const end = Math.min(text.length, idx + searchTerm.length + contextChars);
+
+  let preview = '';
+  if (start > 0) preview += '...';
+  preview += text.slice(start, end);
+  if (end < text.length) preview += '...';
+
+  return preview.replace(/\n/g, ' ');
+}
+
+// ============================================================================
 // Command: recompress
 // ============================================================================
 

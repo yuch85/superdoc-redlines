@@ -68,6 +68,8 @@ node superdoc-redline.mjs read --input contract.docx --stats-only
 
 Output tells you block count, token estimate, and recommended chunks.
 
+**Note:** The `recommendedChunksByLimit` values are estimates. Actual chunk count may be 1.5-2x higher due to block boundary preservation. Plan for 2-3x the estimated chunks when scheduling discovery passes.
+
 ### Step 2: Extract Structure
 
 ```bash
@@ -273,7 +275,20 @@ grep -c 'VAT' contract-ir.json
 
 ### Step 5: Recompress Output File
 
-**⚠️ The SuperDoc library writes DOCX files without compression**, resulting in files ~6x larger than expected. Recompress to reduce file size:
+**⚠️ The SuperDoc library writes DOCX files without compression**, resulting in files ~6x larger than expected.
+
+**Before first use of recompress:**
+```bash
+cd /path/to/superdoc-redlines
+npm install archiver unzipper
+```
+
+Use the built-in recompress command:
+```bash
+node superdoc-redline.mjs recompress --input amended.docx
+```
+
+Or use Python to recompress:
 
 ```python
 python3 << 'EOF'
@@ -362,6 +377,53 @@ Process sequentially, accumulating edits in a master list.
 
 ---
 
+## TOC Block Limitations
+
+Table of Contents blocks cannot be edited with track changes due to deeply nested link structures in ProseMirror.
+
+**Identifying TOC Blocks:**
+- Typically located in blocks b001-b150 in documents with TOC
+- Text patterns: "1. Introduction.....12" or "Part I\t5"
+- Short text with dot leaders or tabs followed by page numbers
+
+**Handling TOC Blocks:**
+- Skip these blocks in edit files
+- Document TOC changes for manual post-processing
+- The apply command will warn when TOC-like blocks are detected
+
+**Error Pattern:**
+```
+[CommandService] Dispatch failed: Invalid content for node paragraph: <link(run(link(textStyle(trackDelete("X.")))))
+```
+
+If you see this error, the block likely has TOC-like link nesting. Skip it and add a note for manual review.
+
+---
+
+## Delete vs Replace Operations
+
+- **Delete:** Use when the entire provision has no equivalent (e.g., TULRCA, TUPE definitions, inheritance tax clauses)
+- **Replace:** Use when adapting content to new jurisdiction (e.g., VAT→GST, HMRC→IRAS)
+
+**Note:** Delete operations don't generate comments in track changes. Add a comment edit separately if you need to explain the deletion.
+
+---
+
+## Jurisdiction Conversion Flags
+
+When converting between jurisdictions (e.g., UK to Singapore), content reduction is expected:
+- UK statutes often have more verbose provisions than Singapore equivalents
+- Use `--allow-reduction` flag proactively
+- Use `-q` (quiet) to suppress expected warnings
+
+Example:
+```bash
+node superdoc-redline.mjs apply --input doc.docx --edits merged.json \
+  --output amended.docx --allow-reduction -q
+```
+
+---
+
 ## Common Pitfalls
 
 | Pitfall | Solution |
@@ -437,6 +499,32 @@ The validator may report:
 | `Significant content reduction` | newText much shorter | Expected for jurisdiction conversion - ignore if intentional |
 | `Ends with trailing comma` | Only flagged if original doesn't end with comma | If both end with comma, this is valid |
 | `content_corruption` | Garbled text patterns | Check for copy-paste errors |
+
+---
+
+## Finding Block IDs by Content
+
+To find blocks containing specific text, use the `find-block` command:
+
+```bash
+# Search by text (case-insensitive)
+node superdoc-redline.mjs find-block --input contract.docx --text "VAT"
+
+# Search by regex
+node superdoc-redline.mjs find-block --input contract.docx --regex "VAT|HMRC"
+
+# Search in already-extracted IR (faster for multiple searches)
+node superdoc-redline.mjs find-block --input contract-ir.json --text "VAT"
+```
+
+Alternatively, use grep or jq on the IR file:
+```bash
+# Using grep (shows context with block IDs)
+grep -B5 "VAT" contract-ir.json | grep -E '"seqId"|"text"'
+
+# Using jq (more precise)
+jq '.blocks[] | select(.text | contains("VAT")) | {seqId, text}' contract-ir.json
+```
 
 ---
 

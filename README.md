@@ -4,7 +4,7 @@ type: reference-documentation
 description: Node.js CLI tool for applying tracked changes and comments to DOCX files
 version: 0.2.0
 agent_doc: SKILL.md
-commands: [extract, read, validate, apply, merge, parse-edits, to-markdown, recompress]
+commands: [extract, read, validate, apply, merge, parse-edits, to-markdown, find-block, recompress]
 ---
 
 # superdoc-redlines
@@ -222,6 +222,38 @@ node superdoc-redline.mjs to-markdown -i edits.json -o edits.md
 |--------|-------------|
 | `-i, --input <file>` | Input JSON file (.json) (required) |
 | `-o, --output <file>` | Output markdown file (.md) (required) |
+
+### `find-block`
+
+Find blocks by text content. Useful for locating block IDs when creating edits.
+
+```bash
+node superdoc-redline.mjs find-block --input contract.docx --text "VAT"
+node superdoc-redline.mjs find-block --input contract-ir.json --regex "VAT|HMRC"
+node superdoc-redline.mjs find-block -i contract.docx -t "Business Day" -c 100
+```
+
+**Options:**
+| Option | Description |
+|--------|-------------|
+| `-i, --input <path>` | Input DOCX file or IR JSON file (required) |
+| `-t, --text <text>` | Text to search for (case-insensitive) |
+| `-r, --regex <pattern>` | Regex pattern to search for |
+| `-c, --context <chars>` | Context characters to show around match (default: 50) |
+| `--max-results <count>` | Maximum number of results (default: 20) |
+
+**Example output:**
+```
+Found 3 block(s):
+
+[b051] (paragraph)
+  ID: c9742b66-c68b-4a5b-92aa-b742b141425e
+  Preview: ...Capital allowances923.Stamp duty and SDLT924.VAT925.Inheritance tax936.[Distraint by HMRC]93Schedu...
+
+[b129] (heading)
+  ID: 603fbb12-bb15-428c-985a-336afff6b4a5
+  Preview: 4.VAT92
+```
 
 ### `recompress`
 
@@ -738,6 +770,17 @@ Output includes:
 **Cause:** Track changes preserves deleted text in the document structure; IR extraction captures all text content.
 
 **This is expected behavior.** To get only the final text, open the DOCX in Word, accept all changes, save, then re-extract.
+
+### TOC Block Editing Failures
+
+**Issue:** Editing Table of Contents blocks may fail with errors like:
+```
+[CommandService] Dispatch failed: Invalid content for node paragraph: <link(run(link(textStyle(trackDelete("X.")))))
+```
+
+**Cause:** TOC blocks have deeply nested link structures that ProseMirror cannot handle when track changes are applied.
+
+**Solution:** Skip TOC blocks in edit files. The apply command now detects and warns about TOC-like blocks during validation. See [CONTRACT-REVIEW-SKILL.md](./skills/CONTRACT-REVIEW-SKILL.md) "TOC Block Limitations" for details.
 
 ---
 

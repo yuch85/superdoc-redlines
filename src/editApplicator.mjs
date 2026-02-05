@@ -94,6 +94,66 @@ import {
 const DEFAULT_AUTHOR = { name: 'AI Assistant', email: 'ai@example.com' };
 
 /**
+ * Detect if a block is likely a TOC (Table of Contents) entry.
+ * TOC blocks have deeply nested link structures that cause ProseMirror
+ * schema validation failures when track changes are applied.
+ *
+ * @param {Object} block - Block object from IR
+ * @returns {boolean}
+ */
+export function isTocBlock(block) {
+  // TOC blocks typically:
+  // 1. Have short text (page numbers, short titles)
+  // 2. Are near the beginning of the document (b001-b150 range typically)
+  // 3. Have text that looks like TOC entries (e.g., "1. Introduction....12")
+
+  const text = block.text || '';
+
+  // Check for TOC-like patterns
+  const tocPatterns = [
+    /^[\d.]+\s+.{1,50}\.{2,}\s*\d+$/,  // "1.2 Section Name.....12"
+    /^\d+\.\s+.{1,30}\t\d+$/,          // "1. Section\t12"
+    /^[A-Z][a-z]+\s+\d+$/,             // "Schedule 1"
+    /^Part\s+[IVX\d]+/i,               // "Part I", "Part 1"
+  ];
+
+  for (const pattern of tocPatterns) {
+    if (pattern.test(text)) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+/**
+ * Check if a block has complex link nesting that may cause track change failures.
+ * This is a deeper check for TOC-like structures.
+ *
+ * @param {Object} block - Block from IR (with optional _node reference)
+ * @returns {{ isToc: boolean, reason?: string }}
+ */
+export function detectTocStructure(block) {
+  const text = block.text || '';
+
+  // Quick pattern-based detection
+  if (isTocBlock(block)) {
+    return { isToc: true, reason: 'TOC entry pattern detected' };
+  }
+
+  // If block is very short and appears to be in early part of document
+  // (based on seqId), flag as potential TOC
+  if (text.length < 100 && block.seqId) {
+    const seqNum = parseInt(block.seqId.replace(/^b/, ''), 10);
+    if (seqNum > 0 && seqNum < 150 && /\.{3,}|\t\d+$/.test(text)) {
+      return { isToc: true, reason: 'Short text with TOC markers in document front matter' };
+    }
+  }
+
+  return { isToc: false };
+}
+
+/**
  * Validate newText for common truncation and corruption patterns.
  * This helps detect LLM output issues before applying edits.
  *
@@ -329,9 +389,9 @@ export async function applyEdits(inputPath, outputPath, editConfig, options = {}
     exportOptions.comments = results.comments;
   }
 
-  // Step 6.5: Reset cursor position to avoid TextSelection warning
+  // Step 6.5: Reset cursor position and suppress TextSelection warning
   // ProseMirror warns when the selection points to an invalid position after bulk edits.
-  // Setting the cursor to position 1 (start of document) ensures a valid selection state.
+  // This warning is benign and doesn't affect document output, but confuses users.
   try {
     if (editor.commands && editor.commands.setTextSelection) {
       editor.commands.setTextSelection(1);
@@ -342,7 +402,24 @@ export async function applyEdits(inputPath, outputPath, editConfig, options = {}
     // Ignore selection errors - they don't affect document output
   }
 
-  const exportedBuffer = await editor.exportDocx(exportOptions);
+  // Temporarily suppress the specific TextSelection warning during export
+  const originalWarn = console.warn;
+  console.warn = (...args) => {
+    const msg = args[0]?.toString() || '';
+    if (msg.includes('TextSelection endpoint not pointing into a node with inline content')) {
+      // Suppress this specific benign warning
+      return;
+    }
+    originalWarn.apply(console, args);
+  };
+
+  let exportedBuffer;
+  try {
+    exportedBuffer = await editor.exportDocx(exportOptions);
+  } finally {
+    // Always restore console.warn
+    console.warn = originalWarn;
+  }
   await writeFile(outputPath, Buffer.from(exportedBuffer));
 
   // Step 7: Cleanup
@@ -619,6 +696,22 @@ export function validateEditsAgainstIR(edits, ir, options = {}) {
             type: 'content_warning',
             blockId,
             message: validation.warnings.join('; ')
+          });
+        }
+      }
+    }
+
+    // Check for TOC blocks that may cause track change failures
+    if (edit.operation === 'replace') {
+      const block = blockById.get(blockId) || blockBySeqId.get(blockId);
+      if (block) {
+        const tocCheck = detectTocStructure(block);
+        if (tocCheck.isToc) {
+          warnings.push({
+            editIndex: i,
+            type: 'toc_warning',
+            blockId,
+            message: `TOC block detected (${tocCheck.reason}). Track changes may fail due to nested link structures. Consider skipping this block.`
           });
         }
       }

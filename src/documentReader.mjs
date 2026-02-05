@@ -163,14 +163,32 @@ export async function getDocumentStats(inputPath, options = {}) {
     const estimatedTokens = Math.ceil(estimatedCharacters / 4);
 
     // Recommended chunks based on user-specified max tokens (or default 100k)
-    const recommendedChunks = Math.max(1, Math.ceil(estimatedTokens / maxTokens));
+    // Note: Actual chunks may be higher due to block boundary preservation
+    // We apply a multiplier to account for this, but only when chunking is needed
+    const simpleEstimate = Math.max(1, Math.ceil(estimatedTokens / maxTokens));
+    // Only apply multiplier if document needs chunking (>1 chunk); small docs stay at 1
+    const blockBoundaryMultiplier = 1.5; // Actual chunks are typically 1.5-2x the simple estimate
+    const recommendedChunks = simpleEstimate === 1 ? 1 : Math.ceil(simpleEstimate * blockBoundaryMultiplier);
 
     // Also provide recommendations for common token limits
+    // Include both simple estimate and adjusted estimate for transparency
     const recommendedChunksByLimit = {
-      "10k": Math.max(1, Math.ceil(estimatedTokens / 10000)),
-      "25k": Math.max(1, Math.ceil(estimatedTokens / 25000)),
-      "40k": Math.max(1, Math.ceil(estimatedTokens / 40000)),
-      "100k": Math.max(1, Math.ceil(estimatedTokens / 100000))
+      "10k": {
+        simple: Math.max(1, Math.ceil(estimatedTokens / 10000)),
+        adjusted: Math.max(1, Math.ceil(Math.ceil(estimatedTokens / 10000) * blockBoundaryMultiplier))
+      },
+      "25k": {
+        simple: Math.max(1, Math.ceil(estimatedTokens / 25000)),
+        adjusted: Math.max(1, Math.ceil(Math.ceil(estimatedTokens / 25000) * blockBoundaryMultiplier))
+      },
+      "40k": {
+        simple: Math.max(1, Math.ceil(estimatedTokens / 40000)),
+        adjusted: Math.max(1, Math.ceil(Math.ceil(estimatedTokens / 40000) * blockBoundaryMultiplier))
+      },
+      "100k": {
+        simple: Math.max(1, Math.ceil(estimatedTokens / 100000)),
+        adjusted: Math.max(1, Math.ceil(Math.ceil(estimatedTokens / 100000) * blockBoundaryMultiplier))
+      }
     };
 
     return {
@@ -180,7 +198,8 @@ export async function getDocumentStats(inputPath, options = {}) {
       estimatedTokens,
       recommendedChunks,
       recommendedChunksByLimit,
-      maxTokensUsed: maxTokens
+      maxTokensUsed: maxTokens,
+      note: 'Chunk counts are estimates. Actual chunks may be 1.5-2x higher due to block boundary preservation.'
     };
   } catch (error) {
     throw new Error(`Failed to get document stats: ${error.message}`);
