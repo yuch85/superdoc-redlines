@@ -72,6 +72,16 @@ Based on document size, choose the appropriate workflow:
 
 **CRITICAL: User-specified workflow flags override automatic selection.**
 
+## ⚠️ Context Budget Rules (Prevents "Prompt Too Long")
+
+When spawning sub-agents via Task():
+1. **NEVER embed** the Context Document in Task prompts — save to `context-document.md`, tell agent to read the file
+2. **Spawn in batches** of 3-4 agents, wait for each batch to complete before the next
+3. **Require compact results** — agents save details to files, return only 1-line summaries
+4. **Budget**: each Task prompt should be ~2K tokens max (assignment + file paths + instructions)
+
+See CONTRACT-REVIEW-AGENTIC-SKILL.md "Context Management for Large Documents" for detailed guidance.
+
 ## Step-by-Step Procedure
 
 ### Step 1: Validate Document
@@ -111,55 +121,98 @@ This creates the block ID mapping needed for edits.
 - Sub-agents work in parallel on assigned sections
 - Merge results into `merged-edits.json`
 
-### Step 4: Discovery Pass
+### Step 4: Parallel Discovery Pass (Multi-Agent, Batched)
 
-Read all chunks to build the Context Document:
+For multi-agent workflow, discovery uses **batched parallel agents**. Spawn in batches of 3-4 to avoid "prompt too long" errors.
 
-```bash
-# Read each chunk until hasMore: false
-node superdoc-redline.mjs read --input "<document>" --chunk 0 --max-tokens 10000
-node superdoc-redline.mjs read --input "<document>" --chunk 1 --max-tokens 10000
-# ... continue
+> **⚠️ CRITICAL: File-Reference Pattern**
+> 
+> NEVER embed the Context Document in Task prompts. Save it to `context-document.md` and tell sub-agents to read the file. This keeps each Task prompt under ~2K tokens.
+
+#### Step 4a: Parallel Pre-Scan (Batch 1)
+Spawn search agents simultaneously to build a term location map:
+
+```
+Batch 1 (spawn 3-4 simultaneously):
+  Task: Pre-scan A - find-block for regulatory terms → prescan-regulatory.md
+  Task: Pre-scan B - find-block for jurisdiction terms → prescan-jurisdiction.md
+  Task: Pre-scan C - find-block for statute terms → prescan-statutes.md
+  Task: Pre-scan D - find-block for entity terms → prescan-entities.md
+→ Wait for batch to complete
 ```
 
-Build Context Document with:
+#### Step 4b: Parallel Discovery Agents (Batch 2)
+Spawn discovery agents to read chunks in parallel:
+
+```
+Batch 2 (spawn 2-4 simultaneously):
+  Task: Discovery 1 - Read chunks 0-4 → findings-1.md
+  Task: Discovery 2 - Read chunks 5-9 → findings-2.md
+  Task: Discovery 3 - Read chunks 10+ → findings-3.md
+→ Wait for batch to complete
+```
+
+Scale discovery agents based on chunk count (2 agents for 5-8 chunks, 3 for 9-14, 4+ for 15+).
+
+#### Step 4c: Merge Findings
+Orchestrator reads all `prescan-*.md` and `findings-*.md` files, deduplicates, and builds the master **`context-document.md`** file with:
 - Defined Terms Registry (all terms and their usage locations)
 - Provisions to change (based on user instructions)
 - Cross-reference map
 - Section map with block ranges
+- Partition assignments (6-8 partitions, 100-200 blocks each)
 
-### Step 5: Amendment Pass
+**This file is what sub-agents will read** — it must be complete before spawning amendment agents.
+
+#### Single-Agent Discovery
+For single-agent workflow, read chunks sequentially per CONTRACT-REVIEW-SKILL.md.
+
+### Step 5: Parallel Amendment Pass (Batched)
 
 #### Single-Agent Path
 Process each chunk with full Context Document, drafting exact amendments.
 
 #### Multi-Agent Path
-1. Plan sub-agent assignments (non-overlapping block ranges)
-2. Spawn sub-agents in parallel using Task tool:
+1. Plan **6-8 partition assignments** (100-200 blocks each, non-overlapping)
+2. Save partition plan to `context-document.md`
+3. Spawn partitions in **batches of 3-4** (file-reference prompts, ~2K tokens each):
 
 ```
-Task({
-  subagent_type: "general-purpose",
-  description: "Review [section] blocks b[start]-b[end]",
-  prompt: "[Sub-agent prompt with Context Document and block range]"
-})
+Batch 3 (spawn 3 simultaneously):
+  Task: Partition 1 (b001-b200)  → edits-part1.md
+    Prompt: "Read context-document.md, review b001-b200, output edits-part1.md, self-validate."
+  Task: Partition 2 (b201-b400)  → edits-part2.md
+  Task: Partition 3 (b401-b600)  → edits-part3.md
+→ Wait for batch to complete
+
+Batch 4 (spawn 3 simultaneously):
+  Task: Partition 4 (b601-b800)  → edits-part4.md
+  Task: Partition 5 (b801-b1000) → edits-part5.md
+  Task: Partition 6 (b1001-b1200)→ edits-part6.md
+→ Wait for batch to complete
+
+Batch 5 (if needed):
+  Task: Partition 7 (b1201-b1337)→ edits-part7.md
+→ Wait for batch to complete
 ```
 
-3. Each sub-agent produces `edits-[section].json`
+Each partition agent **self-validates** its edits before returning (runs `validate` command internally).
+
 4. Merge all edit files:
 
 ```bash
 node superdoc-redline.mjs merge \
-  edits-*.json \
+  edits-part1.md edits-part2.md edits-part3.md \
+  edits-part4.md edits-part5.md edits-part6.md edits-part7.md \
   -o merged-edits.json \
-  -c combine \
+  -c error \
   -v "<document>"
 ```
 
 ### Step 6: Validate and Apply
 
 ```bash
-# Validate
+# Final validate (should be clean since partitions self-validated)
 node superdoc-redline.mjs validate --input "<document>" --edits "<edits-file>"
 
 # Apply with track changes
@@ -170,11 +223,27 @@ node superdoc-redline.mjs apply \
   --author-name "AI Legal Counsel"
 ```
 
-### Step 7: Report Results
+### Step 7: Parallel Post-Apply Verification (Batch 6)
+
+Spawn verification agents in one batch:
+
+```
+Batch 6 (spawn 3-4 simultaneously):
+  Task: Verify A - Check jurisdiction terms coverage → verification-jurisdiction.md
+  Task: Verify B - Check statute references coverage → verification-statutes.md
+  Task: Verify C - Check entity/regulatory terms → verification-entities.md
+  Task: Verify D - Check defined terms coverage → verification-terms.md
+→ Wait for batch to complete
+```
+
+Each agent compares term occurrences in original IR against edits applied. If coverage <100% on critical terms, create supplementary edits and re-apply.
+
+### Step 8: Report Results
 
 Report to user:
 - Total edits applied
 - Breakdown by category (replacements, deletions, insertions, comments)
+- Coverage verification results (from parallel verification agents)
 - Output file path
 - Any issues or items needing human review
 
@@ -187,55 +256,134 @@ The detailed methodology is documented in:
 - **Library reference:** `superdoc-redlines/README.md`
 - **Quick skill reference:** `superdoc-redlines/SKILL.md`
 
-## Sub-Agent Prompt Template
+## Sub-Agent Prompt Templates
 
-When spawning sub-agents for multi-agent workflow, use this template:
+### Amendment Partition Agent
+
+When spawning amendment sub-agents for multi-agent workflow, use this template.
+
+**⚠️ CRITICAL:** Do NOT embed the Context Document in the prompt. Reference the file path instead. This prevents "prompt too long" errors.
 
 ```markdown
-You are a contract review sub-agent. Review your assigned section and produce an edits JSON file.
+You are a contract review sub-agent. Review your assigned section, produce an edits file, and self-validate.
 
 ## Assignment
 - Block Range: b[START] to b[END]
 - Section: [SECTION_NAME]
-- Output: edits-[section].json
+- Output: edits-[section].md
 
 ## Review Instructions
-[USER_INSTRUCTIONS]
+[USER_INSTRUCTIONS — 1-2 sentences only]
 
 ## Context Document
-[FULL_CONTEXT_DOCUMENT]
+Read the full context from file: /home/tyc/ross-ide-contract/superdoc-redlines/context-document.md
 
 ## Procedure
-1. Read your assigned chunks:
+1. Read the context document file first.
+
+2. Read your assigned chunks:
    ```bash
    cd /home/tyc/ross-ide-contract/superdoc-redlines
    node superdoc-redline.mjs read --input "[DOCUMENT]" --chunk [N] --max-tokens 10000
    ```
 
-2. For each block in your range, assess amendments needed based on:
+3. For each block in your range, assess amendments needed based on:
    - The review instructions
    - Defined terms changes from Context Document
    - Provisions requiring deletion or replacement
 
-3. Draft EXACT replacement text (not vague directions)
+4. Draft EXACT replacement text (not vague directions)
 
-4. Create edits file:
-   ```json
-   {
-     "version": "0.2.0",
-     "agent": "[AGENT_ID]",
-     "blockRange": { "start": "b[START]", "end": "b[END]" },
-     "edits": [...]
-   }
+5. Create edits file in markdown format (more resilient than JSON)
+
+6. **SELF-VALIDATE** before returning:
+   ```bash
+   node superdoc-redline.mjs validate --input "[DOCUMENT]" --edits edits-[section].md
    ```
+   If validation fails, fix the issues and re-validate. Only return when validation passes.
 
-5. Save to: edits-[section].json
+7. Save edits to file. Return ONLY a brief summary:
+   "Created X edits (Y replacements, Z deletions). Validation: passed/failed. Issues: none."
 
 ## Rules
 - ONLY edit blocks in your assigned range
 - Draft exact replacement text
 - Use diff: true for surgical edits, diff: false for rewrites
-- Cite Singapore statutes with year (e.g., "Companies Act 1967")
+- Must pass validation before returning
+- Return a SHORT summary, NOT the full edit content
+```
+
+### Pre-Scan Search Agent
+
+```markdown
+You are a pre-scan search agent. Search the IR file for terms in your assigned category.
+
+## Assignment
+- Category: [CATEGORY_NAME]
+- Search Patterns: [REGEX_PATTERNS]
+- IR File: [DOCUMENT]-ir.json
+- Output: prescan-[category].md
+
+## Procedure
+1. Run find-block searches:
+   ```bash
+   cd /home/tyc/ross-ide-contract/superdoc-redlines
+   node superdoc-redline.mjs find-block --input "[DOCUMENT]-ir.json" --regex "[PATTERN]" --limit all
+   ```
+
+2. Save all matches with block IDs and context to: prescan-[category].md
+
+3. Return ONLY: "Found X matches across Y blocks. Saved to prescan-[category].md"
+```
+
+### Discovery Agent
+
+```markdown
+You are a discovery agent. Read your assigned chunks and extract findings.
+
+## Assignment
+- Chunks: [START] to [END]
+- Output: findings-[N].md
+
+## Procedure
+1. Read each assigned chunk:
+   ```bash
+   cd /home/tyc/ross-ide-contract/superdoc-redlines
+   node superdoc-redline.mjs read --input "[DOCUMENT]" --chunk [N] --max-tokens 10000
+   ```
+
+2. Extract: defined terms, term usages, provisions to change/delete, cross-references.
+
+3. Save to: findings-[N].md
+
+4. Return ONLY: "Processed chunks [START]-[END]. Found X terms, Y provisions. Saved to findings-[N].md"
+```
+
+### Verification Agent
+
+```markdown
+You are a verification agent. Check coverage for your assigned term category.
+
+## Assignment
+- Category: [CATEGORY_NAME]
+- Terms to Check: [TERM_LIST]
+- Edits File: merged-edits.json
+- Output: verification-[category].md
+
+## Procedure
+1. For each term, count occurrences in original IR:
+   ```bash
+   cd /home/tyc/ross-ide-contract/superdoc-redlines
+   node superdoc-redline.mjs find-block --input "[DOCUMENT]-ir.json" --text "[TERM]" --limit all
+   ```
+
+2. Count matching edits in merged-edits.json.
+
+3. Report coverage per term. Flag any <100% coverage on critical terms.
+
+4. Save to: verification-[category].md
+
+5. Return ONLY: "Category [NAME]: X/Y terms at 100% coverage. Z gaps found. Saved to verification-[category].md"
 ```
 
 ## Working Directory
@@ -247,13 +395,16 @@ All commands should be run from:
 
 ## Output Files
 
-| File | Purpose |
-|------|---------|
-| `<document>-ir.json` | Extracted document structure with block IDs |
-| `<document>-context.md` | Context Document (for multi-agent) |
-| `edits-*.json` | Edit files from each agent |
-| `merged-edits.json` | Combined edits (multi-agent only) |
-| `<document>-amended.docx` | Final output with tracked changes |
+| File | Purpose | Phase |
+|------|---------|-------|
+| `<document>-ir.json` | Extracted document structure with block IDs | Setup |
+| `prescan-*.md` | Pre-scan search results by category | Discovery |
+| `findings-*.md` | Discovery agent findings by chunk range | Discovery |
+| `<document>-context.md` | Master Context Document (merged findings) | Discovery |
+| `edits-part*.md` | Edit files from each partition agent | Amendment |
+| `merged-edits.json` | Combined edits (multi-agent only) | Merge |
+| `verification-*.md` | Coverage reports by term category | Verification |
+| `<document>-amended.docx` | Final output with tracked changes | Apply |
 
 ## Error Handling
 
