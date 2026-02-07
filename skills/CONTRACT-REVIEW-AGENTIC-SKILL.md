@@ -114,7 +114,7 @@ This is expected behavior, not a bug. The chunking algorithm prioritizes preserv
 **Before reading any chunks**, spawn parallel search agents to build a term location map. Each agent searches for a different category of terms.
 
 ```
-Spawn all simultaneously:
+Spawn as Batch 1 (3-4 agents simultaneously):
   Search Agent A: find-block --regex "regulatory|compliance|authority" --limit all
   Search Agent B: find-block --regex "jurisdiction|governing law|court" --limit all
   Search Agent C: find-block --regex "statute|act|regulation" --limit all
@@ -158,7 +158,7 @@ Search the IR file for terms in your category and produce a term location map.
 Instead of the orchestrator reading all chunks sequentially, spawn **parallel discovery agents**, each reading a subset of chunks.
 
 ```
-Spawn simultaneously:
+Spawn as Batch 2 (after pre-scan completes, 2-4 agents simultaneously):
   Discovery Agent 1: Read chunks 0-4  → findings-1.md
   Discovery Agent 2: Read chunks 5-9  → findings-2.md
   Discovery Agent 3: Read chunks 10+  → findings-3.md
@@ -181,7 +181,7 @@ You are a discovery agent. Read your assigned chunks and extract findings.
 ## Assignment
 - Chunks: [START] to [END]
 - IR File: contract-ir.json
-- Pre-Scan Results: [PASTE RELEVANT prescan-*.md RESULTS]
+- Pre-Scan Results: Read from /path/to/superdoc-redlines/prescan-*.md
 - Output: findings-[N].md
 
 ## Procedure
@@ -391,12 +391,33 @@ Use non-sequential assignment only when different clause types genuinely need di
 
 ---
 
-## Phase 3: Spawn Work Partitions (Parallel)
+## Phase 3: Spawn Work Partitions (Parallel, Batched)
 
-All work partitions run **concurrently** via the Task tool. Each partition receives:
-1. The **Context Document** (or condensed version for large documents)
+Work partitions run via the Task tool. To avoid "prompt too long" errors, use **batched spawning** and **file-reference prompts**.
+
+Each partition receives:
+1. A **file path** to the Context Document (NOT the content embedded in the prompt)
 2. Their **assigned block range**
 3. **Specific instructions**
+
+### ⚠️ CRITICAL: File-Reference Pattern (Prevents "Prompt Too Long")
+
+**NEVER embed the full Context Document in Task prompts.** Instead:
+
+1. Save the Context Document to a file: `context-document.md`
+2. In the Task prompt, tell the sub-agent to **read the file**:
+
+```
+❌ WRONG (causes "prompt too long"):
+  ## Context Document
+  [PASTE 50K+ TOKENS OF CONTEXT HERE]
+
+✅ CORRECT (sub-agent reads file itself):
+  ## Context Document
+  Read the file: /path/to/superdoc-redlines/context-document.md
+```
+
+This keeps each Task prompt under ~2K tokens. The sub-agent uses its own context window to read the file.
 
 ### Work Partition Prompt Template
 
@@ -409,36 +430,42 @@ You are a contract review work partition.
 - **Output File**: edits-[section].md
 
 ## Context Document
-[PASTE FULL CONTEXT DOCUMENT]
+Read the context document from file:
+  /path/to/superdoc-redlines/context-document.md
 
-## Instructions
-1. Read your assigned chunks:
+## Review Instructions
+[USER_INSTRUCTIONS — keep to 1-2 sentences]
+
+## Procedure
+1. Read the Context Document file first.
+
+2. Read your assigned chunks:
    ```bash
    cd /path/to/superdoc-redlines
    node superdoc-redline.mjs read --input contract.docx --chunk [N] --max-tokens 10000
    ```
 
-2. For each block, assess amendments based on Context Document.
+3. For each block, assess amendments based on Context Document.
 
-3. Draft EXACT replacement text (not vague directions).
+4. Draft EXACT replacement text (not vague directions).
 
-4. Check "Items Requiring DELETE" - if any are in your range, create DELETE edits.
+5. Check "Items Requiring DELETE" - if any are in your range, create DELETE edits.
 
-5. Check "Compound Defined Terms" - change these in your range.
+6. Check "Compound Defined Terms" - change these in your range.
 
-6. Create edits file in **markdown format** (recommended for resilience).
+7. Create edits file in **markdown format** (recommended for resilience).
 
-7. **SELF-VALIDATE** your edits before returning:
+8. **SELF-VALIDATE** your edits before returning:
    ```bash
    node superdoc-redline.mjs validate --input contract.docx --edits edits-[section].md
    ```
    If validation fails, fix the issues and re-validate. Only return when validation passes.
 
-8. Before finalizing, verify:
+9. Before finalizing, verify:
    - [ ] All DELETEs in my range created
    - [ ] All compound terms in my range changed
    - [ ] All term usages in my range updated
-   - [ ] Validation passed (step 7)
+   - [ ] Validation passed (step 8)
 
 ## Output
 Report: edit count, deletions made, compound terms changed, validation result, any issues.
@@ -466,22 +493,31 @@ Without self-validation:                With self-validation:
 - Duplicate block IDs across partitions (detected by `-c error` merge)
 - Cross-partition consistency issues
 
-### Execution in Claude Code
+### Execution in Claude Code (Batched Spawning)
 
-All partitions spawn **in parallel** using the Task tool:
+**Do NOT spawn all agents at once.** Each Task() call adds to the orchestrator's context. Spawn in **batches of 3-4** to stay within context limits:
 
 ```
-Spawn simultaneously (all run concurrently):
+Batch 1 (spawn simultaneously):
   Task: Partition 1 (b001-b200)  → edits-part1.md (self-validated)
   Task: Partition 2 (b201-b400)  → edits-part2.md (self-validated)
   Task: Partition 3 (b401-b600)  → edits-part3.md (self-validated)
+  → Wait for batch 1 to complete
+
+Batch 2 (spawn simultaneously):
   Task: Partition 4 (b601-b800)  → edits-part4.md (self-validated)
   Task: Partition 5 (b801-b1000) → edits-part5.md (self-validated)
   Task: Partition 6 (b1001-b1200)→ edits-part6.md (self-validated)
+  → Wait for batch 2 to complete
+
+Batch 3 (if needed):
   Task: Partition 7 (b1201-b1337)→ edits-part7.md (self-validated)
+  → Wait for batch 3 to complete
 ```
 
-Wait for all tasks to complete, then merge.
+**Why batching?** Each Task's prompt + result accumulates in the orchestrator's context. With file-reference prompts (~2K each) and compact results, batches of 3-4 keep the orchestrator comfortably within limits.
+
+Wait for all batches to complete, then merge.
 
 **Empty Edit Files Are Valid:** If a work partition's block range contains no content requiring changes, an empty edit file is acceptable.
 
@@ -600,21 +636,23 @@ Spawn simultaneously:
 ## Orchestrator Checklist
 
 ```markdown
-### Phase 1: Discovery (Parallelized)
+### Phase 1: Discovery (Batched Parallel)
 - [ ] Get stats, extract IR
-- [ ] Spawn parallel pre-scan agents (find-block by category)
-- [ ] Spawn parallel discovery agents (chunk reading)
-- [ ] Merge findings into master Context Document
+- [ ] Save review instructions to context-document.md (start the file)
+- [ ] Batch 1: Spawn pre-scan agents (3-4 agents) → wait → collect prescan-*.md
+- [ ] Batch 2: Spawn discovery agents (2-4 agents) → wait → collect findings-*.md
+- [ ] Merge findings into master context-document.md
 - [ ] Identify all DELETEs and assign to partitions
-- [ ] Build clause location map
 
 ### Phase 2: Decomposition (6-8 Partitions)
 - [ ] Define block ranges (100-200 blocks per partition, non-overlapping)
-- [ ] Prepare work partition prompts with Context Document
+- [ ] Save partition plan to context-document.md
+- [ ] Verify context-document.md is complete (sub-agents will read this file)
 
-### Phase 3: Execute (Parallel)
-- [ ] Spawn all work partitions simultaneously via Task tool
-- [ ] Each has Context Document + block range
+### Phase 3: Execute (Batched Parallel)
+- [ ] Batch 3: Spawn partitions 1-3 via Task (file-reference prompts) → wait
+- [ ] Batch 4: Spawn partitions 4-6 via Task → wait
+- [ ] Batch 5: Spawn partition 7 (if needed) → wait
 - [ ] Each self-validates before returning
 
 ### Phase 4: Merge & Apply
@@ -625,8 +663,8 @@ Spawn simultaneously:
 - [ ] Apply
 - [ ] Recompress output file
 
-### Phase 5: Verification (Parallel)
-- [ ] Spawn parallel verification agents by term category
+### Phase 5: Verification (Batched Parallel)
+- [ ] Batch 6: Spawn verification agents (3-4 agents) → wait
 - [ ] Review coverage reports
 - [ ] Create supplementary edits if coverage < 100% on critical terms
 - [ ] Re-apply if needed
@@ -659,31 +697,49 @@ Work partitions must respect constraints from the Context Document:
 
 > **⚠️ Prompt Too Long Failures**
 >
-> Multi-agent review can fail with "Prompt is too long" during orchestration when the Context Document becomes too large.
+> Multi-agent review can fail with "Prompt is too long" when too many Task() calls accumulate in the orchestrator's context. This is the most common failure mode.
 
-### Prevention Strategies
+### Root Cause
 
-**1. Summarize Context Document for Work Partitions**
-```markdown
-## Condensed Context for Work Partitions
+Every `Task()` call adds to the orchestrator's context:
+- The **prompt text** you send to the sub-agent
+- The **result text** returned by the sub-agent
 
-### Key Term Mappings (for all partitions)
-| Original | New |
-|----------|-----|
-| [Term A] | [New A] |
-| [Term B] | [New B] |
+If you embed the Context Document (20K-50K tokens) in each of 7 Task prompts, that's 140K-350K tokens of prompt text alone — exceeding the orchestrator's context window.
 
-### Partition-Specific Assignments
-[Only include blocks relevant to this partition]
+### Prevention Strategies (Ordered by Priority)
+
+**1. File-Reference Pattern (MANDATORY)**
+
+Never embed the Context Document in Task prompts. Save it to a file and tell the sub-agent to read it:
+
+```
+## Context Document
+Read: /path/to/superdoc-redlines/context-document.md
 ```
 
-**2. Limit Work Partition Context**
-Work partitions receive only:
-- Their assigned block range
-- Term mappings relevant to that range
-- NOT the full Context Document with all chunks summarized
+This reduces each Task prompt from ~30K tokens to ~2K tokens.
 
-**3. For Documents >100K Tokens**
+**2. Batched Spawning (MANDATORY)**
+
+Spawn agents in batches of 3-4, not all at once:
+- Batch 1: Pre-scan agents (3-4 agents) → wait → collect results
+- Batch 2: Discovery agents (2-3 agents) → wait → merge findings
+- Batch 3: Amendment partitions 1-3 → wait → collect
+- Batch 4: Amendment partitions 4-6 → wait → collect
+- Batch 5: Amendment partition 7 + verification → wait → collect
+
+**3. Compact Sub-Agent Results**
+
+Tell sub-agents to save detailed results to files and return only a brief summary:
+```
+## Output
+Save edits to: edits-part1.md
+Return ONLY a brief summary: "Created X edits (Y replacements, Z deletions). Validation: passed."
+```
+
+**4. For Documents >100K Tokens**
+
 Consider running orchestrator and work partitions as separate sessions to avoid context accumulation.
 
 ---
