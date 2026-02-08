@@ -335,34 +335,22 @@ Search output for residual terms that should have been changed. If found, create
 3. Search for residual terms
 4. OR use grep/find-block understanding that matches include deleted content
 
-#### Parallel Coverage Verification (Recommended)
+#### Coverage Verification (Recommended)
 
-For comprehensive reviews, **run coverage checks in parallel** — each checking a different category of terms simultaneously:
-
-```
-Spawn simultaneously:
-  Verify Agent A: Jurisdiction terms (governing law, court names, jurisdiction)
-  Verify Agent B: Statute references (Acts, regulations, statutory instruments)
-  Verify Agent C: Entity/regulatory terms (Companies House, HMRC, etc.)
-  Verify Agent D: Defined terms coverage (all terms from Context Document)
-```
-
-Each agent counts occurrences in the original IR vs edits applied:
+For comprehensive reviews, verify coverage by counting term occurrences:
 
 ```bash
 # Count occurrences of a term in the original IR
-node superdoc-redline.mjs find-block --input contract-ir.json --text "[TERM]" --limit all
+grep -c '[TERM]' contract-ir.json
 
-# Compare against edit count for those blocks
-grep -c "[TERM]" edits.json
+# Your edit count should match or exceed this count
+# If original has 50 references and you have 45 edits, review for missed blocks
 ```
 
 **Coverage Thresholds:**
 - **>90% coverage required** - For defined term replacements
 - **100% coverage required** - For jurisdiction/entity changes
 - **Acceptable gaps** - Blocks within deleted sections don't need edits
-
-See [CONTRACT-REVIEW-AGENTIC-SKILL.md](./CONTRACT-REVIEW-AGENTIC-SKILL.md) "Phase 5: Parallel Post-Apply Verification" for the full verification agent template.
 
 ### Step 5: Recompress Output File
 
@@ -664,4 +652,4 @@ Strict mode exits with code 1 if ANY edit is skipped. For partial success scenar
 
 ---
 
-*Last updated: 7 February 2026*
+*Last updated: 5 February 2026*

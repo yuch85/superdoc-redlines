@@ -11,7 +11,7 @@ This skill enables **multi-agent contract review** using an orchestrator-subagen
 
 **Prerequisites:** This skill builds on [CONTRACT-REVIEW-SKILL.md](./CONTRACT-REVIEW-SKILL.md). You must understand the core methodology (two-pass workflow, edit formats, Context Document) before using this agentic approach.
 
-**Note:** Claude Code supports **parallel sub-agent execution** via the Task tool (up to 16-20 concurrent agents). This skill is designed to maximize parallelism at every phase — discovery, amendment, and verification all use concurrent agents.
+**Note:** In Claude Code, work partitions execute **sequentially** (not in parallel). The organizational benefits remain: clear separation of concerns, smaller focused edit files, and explicit merge/conflict handling.
 
 ### When to Use Multi-Agent Workflow
 
@@ -41,49 +41,44 @@ This skill enables **multi-agent contract review** using an orchestrator-subagen
 ```
 ┌─────────────────────────────────────────────────────────────────────┐
 │                        ORCHESTRATOR AGENT                           │
-│  - Setup: stats + extract IR                                        │
-│  - Dispatch parallel pre-scan + discovery agents                    │
-│  - Merge findings → master Context Document                         │
-│  - Work decomposition (assign block ranges to partitions)           │
-│  - Dispatch parallel amendment agents                               │
-│  - Merge edits → validate → apply                                   │
-│  - Dispatch parallel verification agents                            │
+│  - Discovery Pass (read all chunks, build Context Document)         │
+│  - Work decomposition (assign block ranges to work partitions)      │
+│  - Merge results and validate                                       │
 └─────────────────────────────────────────────────────────────────────┘
-         │                              │                        │
-         ▼ PHASE 1 (parallel)           ▼ PHASE 3 (parallel)    ▼ PHASE 5 (parallel)
-┌──────────────────────┐  ┌───────────────────────┐  ┌───────────────────────┐
-│  Pre-Scan Agents     │  │  Amendment Agents     │  │  Verification Agents  │
-│  (find-block search) │  │  (6-8 partitions)     │  │  (term-category check)│
-├──────────────────────┤  ├───────────────────────┤  ├───────────────────────┤
-│ Search A: regulatory │  │ Agent 1: b001-b200    │  │ Verify A: jurisdict.  │
-│ Search B: jurisdict. │  │ Agent 2: b201-b400    │  │ Verify B: statutes    │
-│ Search C: statutes   │  │ Agent 3: b401-b600    │  │ Verify C: entities    │
-│ Search D: entities   │  │ Agent 4: b601-b800    │  └───────────────────────┘
-└──────────────────────┘  │ Agent 5: b801-b1000   │
-         │                │ Agent 6: b1001-b1200  │
-         ▼                │ Agent 7: b1201-b1337  │
-┌──────────────────────┐  └───────────────────────┘
-│  Discovery Agents    │             │
-│  (parallel chunk     │             ▼
-│   reading)           │  ┌───────────────────────┐
-├──────────────────────┤  │  MERGE & VALIDATE     │
-│ Disc. 1: chunks 0-4  │  │  → APPLY              │
-│ Disc. 2: chunks 5-9  │  │  → RECOMPRESS         │
-│ Disc. 3: chunks 10+  │  └───────────────────────┘
-└──────────────────────┘
-         │
-         ▼
-┌──────────────────────┐
-│  Orchestrator merges  │
-│  → master-context.md │
-└──────────────────────┘
+                                 │
+                                 ▼
+                    ┌─────────────────────────┐
+                    │     WORK PARTITION A    │
+                    │     b001-b300           │ ──► edits-a.md
+                    │     (Definitions)       │
+                    └─────────────────────────┘
+                                 │
+                                 ▼
+                    ┌─────────────────────────┐
+                    │     WORK PARTITION B    │
+                    │     b301-b600           │ ──► edits-b.md
+                    │     (Provisions)        │
+                    └─────────────────────────┘
+                                 │
+                                 ▼
+                    ┌─────────────────────────┐
+                    │     WORK PARTITION C    │
+                    │     b601-b900           │ ──► edits-c.md
+                    │     (Warranties)        │
+                    └─────────────────────────┘
+                                 │
+                                 ▼
+                    ┌─────────────────────────┐
+                    │    MERGE & VALIDATE     │
+                    │    → APPLY              │
+                    └─────────────────────────┘
 ```
 
 ---
 
-## Phase 1: Orchestrator Discovery (Parallelized)
+## Phase 1: Orchestrator Discovery
 
-The orchestrator uses **parallel agents** to accelerate discovery. Three levels of parallelism are available.
+The orchestrator completes a **full discovery pass** before spawning work partitions.
 
 ### Step 1.1: Get Stats & Extract IR
 
@@ -109,161 +104,46 @@ The `recommendedChunksByLimit` provides estimates that may be 1.5-2x lower than 
 
 This is expected behavior, not a bug. The chunking algorithm prioritizes preserving block boundaries over hitting exact token targets.
 
-### Step 1.2: Parallel Pre-Scan (find-block)
+### Step 1.2: Read All Chunks
 
-**Before reading any chunks**, spawn parallel search agents to build a term location map. Each agent searches for a different category of terms.
-
-```
-Spawn all simultaneously:
-  Search Agent A: find-block --regex "regulatory|compliance|authority" --limit all
-  Search Agent B: find-block --regex "jurisdiction|governing law|court" --limit all
-  Search Agent C: find-block --regex "statute|act|regulation" --limit all
-  Search Agent D: find-block --regex "entity|company|party name" --limit all
+```bash
+node superdoc-redline.mjs read --input contract.docx --chunk 0 --max-tokens 10000
+# ... continue until hasMore: false
 ```
 
-**Pre-Scan Agent Prompt Template:**
+#### State File Pattern for Discovery
 
-```markdown
-You are a pre-scan search agent.
+**Problem:** Full discovery means reading all chunks, but keeping chunk content in context exhausts the token budget for edit creation.
 
-## Assignment
-Search the IR file for terms in your category and produce a term location map.
+**Solution:** As you read each chunk, append findings to a persistent state file:
 
-## Procedure
-1. Run your assigned find-block searches:
-   ```bash
-   cd /path/to/superdoc-redlines
-   node superdoc-redline.mjs find-block --input contract-ir.json --regex "[PATTERN]" --limit all
-   ```
+1. Read chunk 0 → Extract findings → Append to `context-document.md`
+2. Read chunk 1 → Extract findings → Append to `context-document.md`
+3. Continue until all chunks processed
+4. `context-document.md` now contains complete findings
 
-2. For each match, record: block ID, matched text, surrounding context (first 80 chars).
-
-3. Save results to: `prescan-[category].md`
-
-## Output Format
-| Block ID | Matched Term | Context (first 80 chars) |
-|----------|-------------|--------------------------|
-| b045 | VAT | "VAT means Value Added Tax as defined..." |
-```
-
-**Result:** A complete map of where every relevant term appears, before reading a single chunk. This lets the orchestrator:
-- Know exactly which chunks contain relevant content
-- Skip chunks with no matches
-- Build accurate partition assignments
-
-**Estimated speedup:** 5-10x faster than sequential `find-block` calls for documents with 10+ search patterns.
-
-### Step 1.3: Parallel Discovery Agents (Chunk Reading)
-
-Instead of the orchestrator reading all chunks sequentially, spawn **parallel discovery agents**, each reading a subset of chunks.
-
-```
-Spawn simultaneously:
-  Discovery Agent 1: Read chunks 0-4  → findings-1.md
-  Discovery Agent 2: Read chunks 5-9  → findings-2.md
-  Discovery Agent 3: Read chunks 10+  → findings-3.md
-```
-
-**How many discovery agents?**
-
-| Total Chunks | Discovery Agents | Chunks Per Agent |
-|--------------|------------------|------------------|
-| 5-8          | 2                | 3-4              |
-| 9-14         | 3                | 3-5              |
-| 15-20        | 4                | 4-5              |
-| 20+          | 5-6              | 4-5              |
-
-**Discovery Agent Prompt Template:**
-
-```markdown
-You are a discovery agent. Read your assigned chunks and extract findings.
-
-## Assignment
-- Chunks: [START] to [END]
-- IR File: contract-ir.json
-- Pre-Scan Results: [PASTE RELEVANT prescan-*.md RESULTS]
-- Output: findings-[N].md
-
-## Procedure
-1. Read each assigned chunk:
-   ```bash
-   cd /path/to/superdoc-redlines
-   node superdoc-redline.mjs read --input contract.docx --chunk [N] --max-tokens 10000
-   ```
-
-2. For each chunk, extract:
-   - Defined terms (term, block ID, definition text)
-   - Term usage locations (block IDs where defined terms appear)
-   - Provisions requiring change (block ID, description, category)
-   - Provisions to DELETE (block ID, reason)
-   - Cross-references to other clauses
-
-3. Save to: findings-[N].md
-
-## Output Format
-```
-# Discovery Findings: Chunks [START]-[END]
-
-## Defined Terms Found
-| Term | Block | Definition (first 80 chars) |
-|------|-------|----------------------------|
-
-## Term Usages
-| Term | Usage Blocks |
-|------|-------------|
-
-## Provisions to Change
-| Block | Category | Description |
-|-------|----------|-------------|
-
-## Provisions to DELETE
-| Block | Reason |
-|-------|--------|
-
-## Cross-References
-| Reference | Target | Block IDs |
-|-----------|--------|-----------|
-```
-
-## Rules
-- ONLY read chunks in your assigned range
-- Record ALL defined terms, even if they seem unrelated
-- Include block IDs for EVERY finding
-```
-
-**Result:** All chunks read concurrently. ~3x faster discovery for a 14-chunk document.
-
-### Step 1.4: Orchestrator Merges Findings
-
-After all discovery agents complete, the orchestrator:
-
-1. **Reads all `findings-*.md` and `prescan-*.md` files**
-2. **Deduplicates defined terms** (same term found by multiple agents)
-3. **Merges usage locations** (term defined in Agent 1's range, used in Agent 2's range)
-4. **Resolves cross-references** across chunk boundaries
-5. **Builds the master `context-document.md`**
-
-#### State File Pattern
-
-Even with parallel discovery, the state file pattern remains important for the orchestrator's merge step:
+**The chunk content leaves context, but findings persist in the file.**
 
 ```markdown
 # Context Document: Asset Purchase Agreement
 
-## Chunk 0-4 Findings (from Discovery Agent 1)
+## Chunk 0 Findings (b001-b100)
 - "VAT" defined in b045
 - "Business Day" references UK in b067
 
-## Chunk 5-9 Findings (from Discovery Agent 2)
+## Chunk 1 Findings (b101-b200)
 - "Companies Act" referenced in b145, b167
 - TUPE provisions: b180-b195
-
-## Chunk 10+ Findings (from Discovery Agent 3)
-- Schedule references to "VAT" in b850, b920
-- Additional "Companies Act" references in b1100
 ```
 
-### Step 1.5: Build Context Document
+**Combined with find-block:**
+- Use `find-block --regex "VAT|HMRC|Companies House"` to locate blocks first
+- Only read chunks containing relevant blocks
+- Skip chunks with no matches
+
+This approach achieves comprehensive coverage with 25-35% token usage vs 60-75% for exhaustive in-context reading.
+
+### Step 1.3: Build Context Document
 
 See [CONTRACT-REVIEW-SKILL.md](./CONTRACT-REVIEW-SKILL.md) for the Context Document template. For agentic workflow, add:
 
@@ -271,35 +151,19 @@ See [CONTRACT-REVIEW-SKILL.md](./CONTRACT-REVIEW-SKILL.md) for the Context Docum
 ## Work Partition Assignments
 | Partition | Block Range | Section | Key Tasks |
 |-----------|-------------|---------|-----------|
-| 1 | b001-b200 | Definitions Pt 1 | Term changes, deletions |
-| 2 | b201-b400 | Definitions Pt 2 | Term changes, provisions |
-| 3 | b401-b600 | Main Provisions | Core provisions |
-| 4 | b601-b800 | Warranties | Warranties, indemnities |
-| 5 | b801-b1000 | Schedules Pt 1 | Schedule amendments |
-| 6 | b1001-b1337 | Schedules Pt 2 | Remaining schedules |
+| A | b001-b300 | Definitions | Term changes, deletions |
+| B | b301-b600 | Provisions | Core provisions |
+| C | b601-b900 | Warranties | Warranties, schedules |
 
 ## Items Requiring DELETE (with assigned partition)
 | Term | Block | Assigned Partition |
 |------|-------|-------------------|
-| [Term] | b### | 1 |
+| [Term] | b### | A |
 ```
 
 ---
 
-## Phase 2: Work Decomposition (6-8 Partitions)
-
-### Partition Count Guidance
-
-With parallel agent support (16-20 concurrent), use **6-8 amendment partitions** for optimal throughput. More partitions = faster completion, but diminishing returns beyond 8 due to merge overhead and context duplication.
-
-| Document Size (blocks) | Recommended Partitions | Blocks Per Partition |
-|------------------------|----------------------|---------------------|
-| < 300 | 2-3 | 100-150 |
-| 300-600 | 4-5 | 100-150 |
-| 600-1000 | 6-7 | 100-170 |
-| 1000+ | 7-8 | 130-200 |
-
-**Sweet spot:** 100-200 blocks per partition. Smaller partitions complete faster and are easier to validate.
+## Phase 2: Work Decomposition
 
 ### Block Range Assignment
 
@@ -308,77 +172,49 @@ With parallel agent support (16-20 concurrent), use **6-8 amendment partitions**
 For most documents, divide blocks evenly by sequential ranges:
 
 ```markdown
-## Partition Assignments (Sequential - 7 Partitions)
+## Partition Assignments (Sequential)
 
-### Partition 1: b001-b200
-- Section: Parties, Recitals, Definitions Pt 1
-- Output: edits-part1.md
+### Partition A: b001-b450
+- Section: Parties, Definitions, Interpretation
+- Output: edits-definitions.md
 
-### Partition 2: b201-b400
-- Section: Definitions Pt 2, Interpretation
-- Output: edits-part2.md
+### Partition B: b451-b900
+- Section: Main provisions, Warranties
+- Output: edits-provisions.md
 
-### Partition 3: b401-b600
-- Section: Conditions, Completion
-- Output: edits-part3.md
-
-### Partition 4: b601-b800
-- Section: Warranties Pt 1
-- Output: edits-part4.md
-
-### Partition 5: b801-b1000
-- Section: Warranties Pt 2, Indemnities
-- Output: edits-part5.md
-
-### Partition 6: b1001-b1200
-- Section: Schedules Pt 1
-- Output: edits-part6.md
-
-### Partition 7: b1201-b1337
-- Section: Schedules Pt 2
-- Output: edits-part7.md
+### Partition C: b901-b1337
+- Section: Schedules
+- Output: edits-schedules.md
 ```
 
-**As long as all partitions share the same Context Document** with term mappings, each partition applies the same rules to their blocks. Nothing is missed - if "VAT" appears in b350, Partition 2 edits it; if "VAT" also appears in b700, Partition 4 edits it. Both follow the Context Document rules.
+**As long as all partitions share the same Context Document** with term mappings, each partition applies the same rules to their blocks. Nothing is missed - if "VAT" appears in b350, Partition A edits it; if "VAT" also appears in b700, Partition B edits it. Both follow the Context Document rules.
 
 #### Partition Size Targets
 
 - Aim for roughly equal block counts for balanced workload
-- **100-200 blocks per partition** is optimal (smaller than before, more agents)
+- 200-500 blocks per partition is typical
 - Adjust based on actual content density (schedules may need fewer blocks per partition)
-- Definitions sections are edit-dense; give them smaller block ranges
 
 #### Clause-Type Grouping (Optional)
 
 Use non-sequential assignment only when different clause types genuinely need different treatment:
 
 ```markdown
-## Partition Assignments (By Clause Type - 6 Partitions)
+## Partition Assignments (By Clause Type)
 
-### Partition 1: Definitions (A-L)
-- Blocks: b001-b150
-- Output: edits-defs-1.md
+### Partition A: Definitions & Terms
+- Blocks: b001-b300
+- Output: edits-definitions.md
 
-### Partition 2: Definitions (M-Z) + Interpretation
-- Blocks: b151-b320
-- Output: edits-defs-2.md
-
-### Partition 3: Core Provisions
-- Blocks: b321-b550
-- Output: edits-provisions.md
-
-### Partition 4: Warranties & Indemnities
-- Blocks: b551-b780
-- Output: edits-warranties.md
-
-### Partition 5: Jurisdiction-Sensitive Clauses
-- Blocks: b781-b900
+### Partition B: Jurisdiction-Sensitive Clauses
+- Blocks: b651-b695, b1100-b1150
 - Includes: Governing law, jurisdiction, service of process
 - Output: edits-jurisdiction.md
 
-### Partition 6: Schedules
-- Blocks: b901-b1337
-- Output: edits-schedules.md
+### Partition C: Employment & Related
+- Blocks: b450-b480, b720-b750
+- Needs specialist review
+- Output: edits-employment.md
 ```
 
 | Strategy | Best For |
@@ -391,10 +227,10 @@ Use non-sequential assignment only when different clause types genuinely need di
 
 ---
 
-## Phase 3: Spawn Work Partitions (Parallel)
+## Phase 3: Spawn Work Partitions
 
-All work partitions run **concurrently** via the Task tool. Each partition receives:
-1. The **Context Document** (or condensed version for large documents)
+Each work partition receives:
+1. The **Context Document** (global context)
 2. Their **assigned block range**
 3. **Specific instructions**
 
@@ -414,7 +250,6 @@ You are a contract review work partition.
 ## Instructions
 1. Read your assigned chunks:
    ```bash
-   cd /path/to/superdoc-redlines
    node superdoc-redline.mjs read --input contract.docx --chunk [N] --max-tokens 10000
    ```
 
@@ -428,68 +263,29 @@ You are a contract review work partition.
 
 6. Create edits file in **markdown format** (recommended for resilience).
 
-7. **SELF-VALIDATE** your edits before returning:
-   ```bash
-   node superdoc-redline.mjs validate --input contract.docx --edits edits-[section].md
-   ```
-   If validation fails, fix the issues and re-validate. Only return when validation passes.
-
-8. Before finalizing, verify:
+7. Before finalizing, verify:
    - [ ] All DELETEs in my range created
    - [ ] All compound terms in my range changed
    - [ ] All term usages in my range updated
-   - [ ] Validation passed (step 7)
 
 ## Output
-Report: edit count, deletions made, compound terms changed, validation result, any issues.
+Report: edit count, deletions made, compound terms changed, any issues.
 ```
-
-### Per-Partition Self-Validation
-
-**Each partition validates its own edits before returning.** This eliminates the re-validation round-trip:
-
-```
-Without self-validation:                With self-validation:
-  Partition A → edits-a.md                Partition A → validate → fix → edits-a.md ✓
-  Partition B → edits-b.md                Partition B → validate → fix → edits-b.md ✓
-  Merge → Validate → ERRORS!              Merge → Validate → CLEAN (formality)
-  Fix → Re-validate → ...                 Apply immediately
-```
-
-**What self-validation catches:**
-- Missing `newText` fields
-- Invalid block IDs (typos, out-of-range)
-- Truncated content
-- Wrong field names
-
-**What it can't catch** (still needs merge-level validation):
-- Duplicate block IDs across partitions (detected by `-c error` merge)
-- Cross-partition consistency issues
 
 ### Execution in Claude Code
 
-All partitions spawn **in parallel** using the Task tool:
+Work partitions execute sequentially:
 
-```
-Spawn simultaneously (all run concurrently):
-  Task: Partition 1 (b001-b200)  → edits-part1.md (self-validated)
-  Task: Partition 2 (b201-b400)  → edits-part2.md (self-validated)
-  Task: Partition 3 (b401-b600)  → edits-part3.md (self-validated)
-  Task: Partition 4 (b601-b800)  → edits-part4.md (self-validated)
-  Task: Partition 5 (b801-b1000) → edits-part5.md (self-validated)
-  Task: Partition 6 (b1001-b1200)→ edits-part6.md (self-validated)
-  Task: Partition 7 (b1201-b1337)→ edits-part7.md (self-validated)
-```
-
-Wait for all tasks to complete, then merge.
+1. Work on Partition A's block range → create `edits-definitions.md`
+2. Work on Partition B's block range → create `edits-provisions.md`
+3. Work on Partition C's block range → create `edits-warranties.md`
+4. Merge all files together
 
 **Empty Edit Files Are Valid:** If a work partition's block range contains no content requiring changes, an empty edit file is acceptable.
 
 ---
 
-## Phase 4: Merge & Apply
-
-Since each partition has **already self-validated**, the merge step is streamlined.
+## Phase 4: Merge & Validate
 
 ### Step 4.1: Collect Edit Files
 
@@ -501,8 +297,7 @@ ls edits-*.md
 
 ```bash
 node superdoc-redline.mjs merge \
-  edits-part1.md edits-part2.md edits-part3.md \
-  edits-part4.md edits-part5.md edits-part6.md edits-part7.md \
+  edits-definitions.md edits-provisions.md edits-warranties.md \
   -o merged-edits.json \
   -c error \
   -v contract.docx
@@ -527,7 +322,6 @@ node superdoc-redline.mjs merge \
 ### Step 4.4: Validate & Apply
 
 ```bash
-# Final validation (should be clean since partitions self-validated)
 node superdoc-redline.mjs validate --input contract.docx --edits merged-edits.json
 node superdoc-redline.mjs apply -i contract.docx -o amended.docx -e merged-edits.json --strict
 ```
@@ -545,91 +339,34 @@ node superdoc-redline.mjs apply -i contract.docx -o amended.docx -e merged-edits
 
 ---
 
-## Phase 5: Parallel Post-Apply Verification
-
-After applying edits, spawn **parallel verification agents** to check for residual terms that should have been changed. Each agent checks a different category.
-
-### Verification Agent Prompt Template
-
-```markdown
-You are a post-apply verification agent. Check for residual terms in one category.
-
-## Assignment
-- Category: [CATEGORY_NAME]
-- Search Terms: [LIST OF TERMS TO CHECK]
-- IR File: contract-ir.json (original)
-- Edits File: merged-edits.json
-
-## Procedure
-1. For each search term, count occurrences in the original IR:
-   ```bash
-   cd /path/to/superdoc-redlines
-   node superdoc-redline.mjs find-block --input contract-ir.json --text "[TERM]" --limit all
-   ```
-
-2. Count how many of those blocks have edits in merged-edits.json:
-   ```bash
-   grep -c "[TERM]" merged-edits.json
-   ```
-
-3. Report coverage: blocks found vs blocks with edits.
-
-4. Save to: verification-[category].md
-
-## Output Format
-| Term | Occurrences | Edits | Coverage | Missed Blocks |
-|------|------------|-------|----------|---------------|
-| VAT  | 12         | 12    | 100%     | none          |
-| HMRC | 5          | 4     | 80%      | b920          |
-```
-
-### Spawn Verification Agents
-
-```
-Spawn simultaneously:
-  Verify Agent A: Jurisdiction terms (governing law, court, jurisdiction)
-  Verify Agent B: Statute references (Acts, regulations, statutory instruments)
-  Verify Agent C: Entity/regulatory terms (Companies House, HMRC, etc.)
-  Verify Agent D: Defined terms coverage (all terms from Context Document)
-```
-
-**Result:** Comprehensive coverage check in parallel. If any agent reports <100% coverage on critical terms, create supplementary edits and re-apply.
-
----
-
 ## Orchestrator Checklist
 
 ```markdown
-### Phase 1: Discovery (Parallelized)
+### Phase 1: Discovery
 - [ ] Get stats, extract IR
-- [ ] Spawn parallel pre-scan agents (find-block by category)
-- [ ] Spawn parallel discovery agents (chunk reading)
-- [ ] Merge findings into master Context Document
+- [ ] Read ALL chunks
+- [ ] Build Context Document with partition assignments
 - [ ] Identify all DELETEs and assign to partitions
 - [ ] Build clause location map
 
-### Phase 2: Decomposition (6-8 Partitions)
-- [ ] Define block ranges (100-200 blocks per partition, non-overlapping)
-- [ ] Prepare work partition prompts with Context Document
+### Phase 2: Decomposition
+- [ ] Define block ranges by clause type (non-overlapping for edits)
+- [ ] Prepare work partition prompts
 
-### Phase 3: Execute (Parallel)
-- [ ] Spawn all work partitions simultaneously via Task tool
+### Phase 3: Execute
+- [ ] Process all work partitions
 - [ ] Each has Context Document + block range
-- [ ] Each self-validates before returning
 
-### Phase 4: Merge & Apply
-- [ ] Collect all self-validated edit files
+### Phase 4: Collect
+- [ ] Verify each partition reported DELETEs and compound terms
+
+### Phase 5: Merge & Apply
 - [ ] Merge all edits with -c error
 - [ ] Pre-apply verification
-- [ ] Final validate (should be clean)
+- [ ] Validate
 - [ ] Apply
 - [ ] Recompress output file
-
-### Phase 5: Verification (Parallel)
-- [ ] Spawn parallel verification agents by term category
-- [ ] Review coverage reports
-- [ ] Create supplementary edits if coverage < 100% on critical terms
-- [ ] Re-apply if needed
+- [ ] Post-apply verification
 ```
 
 ---
@@ -749,47 +486,40 @@ grep -i "[SOURCE_TERM_1]\|[SOURCE_TERM_2]" amended-contract.docx
 
 ### Budget Allocation (for 200K context window)
 
-With parallel agents, token budget is distributed across agents rather than consumed by one orchestrator:
-
-| Phase | Orchestrator Tokens | Per-Agent Tokens | Total Agents |
-|-------|-------------------|-----------------|--------------|
-| Pre-scan | 5K (dispatch) | ~10K each | 3-4 search agents |
-| Discovery | 15K (merge findings) | ~30K each | 2-4 discovery agents |
-| Decomposition | 10K (planning) | — | — |
-| Amendment | 5K (dispatch) | ~40K each | 6-8 partition agents |
-| Merge + Apply | 20K | — | — |
-| Verification | 5K (dispatch) | ~15K each | 3-4 verify agents |
-
-**Key insight:** Parallel agents each have their own context window. The orchestrator only needs to hold findings/summaries, not all raw chunk content. This dramatically reduces orchestrator context pressure.
+| Phase | Allocation | Purpose |
+|-------|------------|---------|
+| Discovery | 30% (60K) | Read chunks, build Context Document |
+| Edit creation | 60% (120K) | Create partition edit files |
+| Overhead/merge | 10% (20K) | Merge, validate, apply |
 
 ### Discovery Optimization
 
-**With parallel pre-scan** (recommended for all multi-agent runs):
-- Pre-scan agents search IR file in parallel (~10K tokens each)
-- Discovery agents read chunks in parallel (~30K tokens each)
-- Orchestrator merges findings (~15K tokens)
-- **Orchestrator token usage:** 20-30% of budget (vs 60-75% for sequential)
-
-**Without parallel pre-scan** (fallback):
+**High-edit runs (50+ edits)** achieved with strategic discovery:
 - Use `find-block --regex "pattern1|pattern2|pattern3"` instead of reading all chunks
 - Read only 2-3 representative chunks per section
-- **Orchestrator token usage:** 25-35% of budget
+- Query IR file for term frequencies
+- Save remaining tokens for comprehensive edit creation
+- **Token usage:** 25-35% of budget
+
+**Low-edit runs (16-35 edits)** with exhaustive discovery:
+- Read all chunks sequentially
+- Higher context pressure during edit creation
+- **Token usage:** 60-75% of budget
 
 ### Edit Creation Optimization
 
 - Create partition edit files in markdown format
 - Use `parse-edits` to convert (faster than JSON authoring)
-- Each partition agent self-validates (catches errors without orchestrator round-trip)
-- **100-200 blocks per partition** keeps each agent well within context limits
+- Focus on clause-type groupings (enables larger edit sets per partition)
 
-### Signs You Should Add More Agents
+### Signs You Should Optimize
 
-- Any single agent using >70% of its context
-- Partition agents skipping blocks due to context pressure
-- Discovery agents unable to read all assigned chunks
-- "Prompt too long" errors in any agent
+- Context usage >70% during discovery
+- Unable to read all schedule blocks
+- Partition creation feeling rushed
+- "Prompt too long" errors
 
-**Solution:** Split the overloaded agent's range into two smaller ranges and add another agent.
+**Solution:** Switch to strategic discovery using find-block + state file pattern.
 
 ---
 
@@ -801,4 +531,4 @@ With parallel agents, token budget is distributed across agents rather than cons
 
 ---
 
-*Last updated: 7 February 2026*
+*Last updated: 5 February 2026*
