@@ -27,16 +27,9 @@ npm-debug.log*
 *-ir.json
 chunk-*.json
 edits*.json
-edits*.md
-edits-part*.md
 merged*.json
 *-amended.docx
 *-redlined.docx
-*-context.md
-prescan-*.md
-findings-*.md
-verification-*.md
-context-document.md
 
 # tests_and_others: ignore everything EXCEPT tests_and_others/tests/
 # (tests and fixtures are useful for public repo)
