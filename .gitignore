@@ -35,6 +35,7 @@ merged*.json
 # (tests and fixtures are useful for public repo)
 tests_and_others/*
 !tests_and_others/tests/
+!tests_and_others/superdoc-demo-small-1.gif
 tests_and_others/tests/output/
 
 # Build artifacts

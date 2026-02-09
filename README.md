@@ -5,12 +5,12 @@ A Node.js CLI tool for applying tracked changes and comments to DOCX files using
 Designed for use by AI agents (Claude, GPT, etc.) in IDE environments like Cursor, VS Code, or Claude Code.
 
 <p align="center">
-  <a href="https://youtu.be/QMfM7Rtbfag">
-    <img src="https://img.youtube.com/vi/QMfM7Rtbfag/hqdefault.jpg" alt="Demo video" />
+  <a href="https://youtu.be/EgG6wqaYTcs">
+    <img src="./tests_and_others/superdoc-demo-small-1.gif" alt="Demo video" />
   </a>
 </p>
 
-<p align="center"><em><small>Multi-agentic contract review of a 100+ page contract using Claude Code, using this library and the <a href="./skills/CONTRACT-REVIEW-AGENTIC-SKILL.md">CONTRACT-REVIEW-AGENTIC-SKILL.md</a> workflow — no trimming so you can see the actual time to review.</small></em></p>
+<p align="center"><em><small>Sped-up 30s demo of multi-agentic contract review of a 100+ page contract using Claude Code, this library and the <a href="./skills/CONTRACT-REVIEW-AGENTIC-SKILL.md">CONTRACT-REVIEW-AGENTIC-SKILL.md</a> workflow — <a href="https://youtu.be/EgG6wqaYTcs">click to see the full-length video</a>.</small></em></p>
 
 > **For AI Agents:** See [SKILL.md](./SKILL.md) for the concise task-oriented guide with decision flows, constraints, and expected outputs.
 
