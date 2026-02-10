@@ -27,6 +27,7 @@ Designed for use by AI agents (Claude, GPT, etc.) in IDE environments like Curso
 - **Multi-Agent Support** - Merge edits from parallel sub-agents with conflict resolution
 - **Track Changes** - Word-level diff produces minimal, reviewable changes
 - **Comments** - Attach comments to any block for review
+- **Text-Span Annotations** - Anchor comments and highlights to specific text within blocks (sub-block granularity)
 
 ## Installation
 
@@ -290,13 +291,15 @@ Recompressing: bloated.docx
 
 ---
 
-## Edit Format (v0.2.0)
+## Edit Format (v0.3.0)
 
 > **AI Agents:** See [SKILL.md](./SKILL.md) for JSON Schema, common mistakes, and critical constraints.
 
+### Block-Level Operations (v0.2.0+)
+
 ```json
 {
-  "version": "0.2.0",
+  "version": "0.3.0",
   "author": {
     "name": "AI Counsel",
     "email": "ai@firm.com"
@@ -329,14 +332,63 @@ Recompressing: bloated.docx
 }
 ```
 
+### Text-Span Operations (v0.3.0)
+
+These operations anchor to specific text within a block using `findText` for sub-block granularity:
+
+```json
+{
+  "version": "0.3.0",
+  "author": { "name": "AI Counsel", "email": "ai@firm.com" },
+  "edits": [
+    {
+      "blockId": "b020",
+      "operation": "comment",
+      "findText": "Material Adverse Change",
+      "comment": "Definition is too broad"
+    },
+    {
+      "blockId": "b035",
+      "operation": "insertAfterText",
+      "findText": "reasonable endeavours",
+      "insertText": " (acting in good faith)"
+    },
+    {
+      "blockId": "b042",
+      "operation": "highlight",
+      "findText": "unlimited liability",
+      "color": "#FF6B6B",
+      "comment": "Flag for partner review"
+    },
+    {
+      "blockId": "b050",
+      "operation": "commentRange",
+      "findText": "governing law shall be England",
+      "comment": "Should this be Singapore?"
+    },
+    {
+      "blockId": "b060",
+      "operation": "commentHighlight",
+      "findText": "entire agreement",
+      "comment": "Check against side letter",
+      "color": "#FFEB3B"
+    }
+  ]
+}
+```
+
 ### Edit Operations
 
 | Operation | Required Fields | Optional Fields | Description |
 |-----------|-----------------|-----------------|-------------|
 | `replace` | `blockId`, `newText` | `comment`, `diff` | Replace block content |
 | `delete` | `blockId` | `comment` | Delete block entirely |
-| `comment` | `blockId`, `comment` | - | Add comment to block |
+| `comment` | `blockId`, `comment` | `findText` | Add comment to block (or to specific text if `findText` provided) |
 | `insert` | `afterBlockId`, `text` | `type`, `level`, `comment` | Insert new block |
+| `insertAfterText` | `blockId`, `findText`, `insertText` | `comment` | Insert text immediately after matched text within a block |
+| `highlight` | `blockId`, `findText` | `color`, `comment` | Highlight specific text within a block |
+| `commentRange` | `blockId`, `findText`, `comment` | - | Add comment anchored to specific text span |
+| `commentHighlight` | `blockId`, `findText`, `comment` | `color` | Highlight text and attach a comment (atomic) |
 
 ### Field Reference
 
@@ -350,6 +402,17 @@ Recompressing: bloated.docx
 | `diff` | boolean | Use word-level diff for minimal changes (default: `true`) |
 | `type` | string | Block type for insert: `paragraph\|heading\|listItem` |
 | `level` | number | Heading level for insert (1-6) |
+| `findText` | string | Exact text to match within a block (for text-span operations) |
+| `insertText` | string | Text to insert after matched text (`insertAfterText` only) |
+| `color` | string | Highlight color as hex string (default: `"#FFEB3B"`) |
+
+### Text-Span Behavior
+
+- **`findText` matching** uses exact string matching within the block's text content
+- **`comment` with `findText`** gracefully falls back to a full-block comment if the text is not found
+- **`commentRange`** also falls back to full-block comment on match failure
+- **Sort order**: When multiple text-span operations target the same block, they are applied rightmost-first to prevent position corruption
+- **Conflict detection**: Text-span operations use composite keys (`blockId::operation::findText`) so multiple annotations on different text spans within the same block do not conflict
 
 ---
 
@@ -363,11 +426,15 @@ For large edit sets, the markdown format is more reliable than JSON because:
 
 ### Markdown Format Specification
 
+The markdown format supports two table layouts: a 4-column format for basic operations and a 6-column extended format when text-span operations are used.
+
+**4-Column Format (block-level operations only):**
+
 ```markdown
 # Edits: [Document Name]
 
 ## Metadata
-- **Version**: 0.2.0
+- **Version**: 0.3.0
 - **Author Name**: AI Legal Counsel
 - **Author Email**: ai@counsel.sg
 
@@ -389,7 +456,26 @@ Business Day: a day other than a Saturday, Sunday or public holiday in Singapore
 The Buyer shall offer employment to each Transferring Employee.
 ```
 
+**6-Column Format (when using text-span operations):**
+
+```markdown
+## Edits Table
+
+| Block | Op | FindText | Color | Diff | Comment |
+|-------|-----|----------|-------|------|---------|
+| b165 | replace | - | - | true | Change Business Day |
+| b020 | comment | Material Adverse Change | - | - | Definition too broad |
+| b035 | insertAfterText | reasonable endeavours | - | - | (acting in good faith) |
+| b042 | highlight | unlimited liability | #FF6B6B | - | Flag for review |
+| b050 | commentRange | governing law | - | - | Should be Singapore? |
+| b060 | commentHighlight | entire agreement | #FFEB3B | - | Check side letter |
+```
+
+The format is auto-detected: if any edit uses `findText`, `color`, or a text-span operation, the 6-column format is used. For `insertAfterText`, the Comment column contains the text to insert.
+
 ### Table Columns
+
+**4-Column Format:**
 
 | Column | Required | Values | Description |
 |--------|----------|--------|-------------|
@@ -397,6 +483,17 @@ The Buyer shall offer employment to each Transferring Employee.
 | Op | Yes | `delete`, `replace`, `comment`, `insert` | Operation type |
 | Diff | For replace | `true`, `false`, `-` | Word-level diff mode |
 | Comment | No | Free text | Rationale for edit |
+
+**6-Column Format (extends 4-column):**
+
+| Column | Required | Values | Description |
+|--------|----------|--------|-------------|
+| Block | Yes | `b###` | Block ID from document IR |
+| Op | Yes | All 8 operation types | Operation type |
+| FindText | For text-span ops | Exact text string, `-` | Text to match within block |
+| Color | For highlight ops | Hex color string, `-` | Highlight color |
+| Diff | For replace | `true`, `false`, `-` | Word-level diff mode |
+| Comment | No | Free text | Rationale (or insertText for `insertAfterText`) |
 
 ### Text Sections
 
@@ -634,7 +731,11 @@ import {
   replaceBlockById,
   deleteBlockById,
   insertAfterBlock,
-  addCommentToBlock
+  addCommentToBlock,
+  findTextPositionInBlock,
+  insertTextAfterMatch,
+  highlightTextInBlock,
+  addCommentToTextInBlock
 } from './src/blockOperations.mjs';
 
 // With word-level diff
@@ -646,8 +747,28 @@ await deleteBlockById(editor, 'b005');
 // Insert after a block
 await insertAfterBlock(editor, 'b010', 'New paragraph');
 
-// Add comment
+// Add comment to whole block
 await addCommentToBlock(editor, 'b015', 'Needs review');
+```
+
+#### Text-Span Operations (v0.3.0)
+
+```javascript
+// Find text position within a block
+const pos = findTextPositionInBlock(editor, 'b020', 'Material Adverse Change');
+// => { found: true, from: 142, to: 166 }
+
+// Insert text after a match
+await insertTextAfterMatch(editor, 'b035', 'reasonable endeavours', ' (acting in good faith)');
+
+// Highlight specific text (default yellow)
+await highlightTextInBlock(editor, 'b042', 'unlimited liability');
+
+// Highlight with custom color
+await highlightTextInBlock(editor, 'b042', 'unlimited liability', '#FF6B6B');
+
+// Add comment anchored to specific text
+await addCommentToTextInBlock(editor, 'b050', 'governing law', 'Should this be Singapore?');
 ```
 
 ### Edit Application
@@ -696,8 +817,10 @@ const result = await mergeEditFiles(['a.json', 'b.json'], {
 // Normalize a single edit manually
 const normalized = normalizeEdit({
   blockId: 'b001',
-  type: 'replace',      // Will become 'operation'
-  replacement: 'text'   // Will become 'newText'
+  type: 'replace',         // Will become 'operation'
+  replacement: 'text',     // Will become 'newText'
+  search: 'some text',     // Will become 'findText'
+  highlightColor: '#FF0'   // Will become 'color'
 });
 ```
 
@@ -802,11 +925,12 @@ Tests use Node.js built-in test runner (`node:test`):
 | File | Tests | Description |
 |------|-------|-------------|
 | `irExtractor.test.mjs` | IR extraction, block IDs |
-| `blockOperations.test.mjs` | Replace, delete, insert, comment |
-| `editApplicator.test.mjs` | Validation, application, sorting |
+| `blockOperations.test.mjs` | Replace, delete, insert, comment, text-span operations |
+| `editApplicator.test.mjs` | Validation, application, sorting, text-span ops |
 | `documentReader.test.mjs` | Reading, formats, chunking |
 | `chunking.test.mjs` | Token estimation, chunking algorithm |
-| `editMerge.test.mjs` | Merging, conflicts, validation |
+| `editMerge.test.mjs` | Merging, conflicts, validation, composite conflict keys |
+| `markdownEditsParser.test.mjs` | Markdown ↔ JSON conversion, 4/6-column formats |
 | `multiAgent.test.mjs` | Multi-agent workflows |
 | `cli.test.mjs` | CLI command tests |
 | `integration.test.mjs` | End-to-end workflow tests |
