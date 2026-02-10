@@ -13,7 +13,8 @@ import {
   sortEditsForApplication,
   analyzeConflicts,
   createEmptyEditFile,
-  splitBlocksForAgents
+  splitBlocksForAgents,
+  normalizeEdit
 } from '../../src/editMerge.mjs';
 
 // Test fixtures directory
@@ -525,5 +526,164 @@ describe('splitBlocksForAgents', () => {
     const ranges = splitBlocksForAgents(sampleIR, 2, { respectHeadings: false });
 
     assert.equal(ranges.length, 2);
+  });
+});
+
+// ====================================================================
+// v0.3.0 Annotation Conflict Tests
+// ====================================================================
+
+describe('mergeEdits - annotation conflict detection', () => {
+  it('allows multiple annotation ops on same block with different findText (no conflict)', () => {
+    const editsA = {
+      edits: [
+        { blockId: 'b001', operation: 'commentRange', findText: 'first phrase', comment: 'Comment A' }
+      ]
+    };
+    const editsB = {
+      edits: [
+        { blockId: 'b001', operation: 'commentRange', findText: 'second phrase', comment: 'Comment B' }
+      ]
+    };
+
+    const result = mergeEdits([editsA, editsB]);
+
+    assert.equal(result.success, true, 'Should succeed without conflict');
+    assert.equal(result.conflicts.length, 0, 'No conflicts for different findText');
+    assert.equal(result.merged.edits.length, 2, 'Both annotation edits should be merged');
+  });
+
+  it('detects conflict for same blockId + same findText + same operation', () => {
+    const editsA = {
+      edits: [
+        { blockId: 'b001', operation: 'commentRange', findText: 'same text', comment: 'Comment A' }
+      ]
+    };
+    const editsB = {
+      edits: [
+        { blockId: 'b001', operation: 'commentRange', findText: 'same text', comment: 'Comment B' }
+      ]
+    };
+
+    const result = mergeEdits([editsA, editsB], { conflictStrategy: 'error' });
+
+    assert.equal(result.success, false, 'Should fail with conflict');
+    assert.equal(result.conflicts.length, 1);
+    assert.equal(result.conflicts[0].blockId, 'b001');
+  });
+
+  it('replace/delete on block conflicts with annotation on same block using simple blockId key', () => {
+    const editsA = {
+      edits: [
+        { blockId: 'b001', operation: 'replace', newText: 'Replaced text' }
+      ]
+    };
+    const editsB = {
+      edits: [
+        { blockId: 'b001', operation: 'highlight', findText: 'some text' }
+      ]
+    };
+
+    // The replace uses key 'b001' and the highlight uses 'b001::highlight::some text'
+    // These are different keys, so no conflict is detected in the merge logic
+    // However, note that the destructive op (replace) and annotation op have separate keys
+    const result = mergeEdits([editsA, editsB], { conflictStrategy: 'error' });
+
+    // These use different conflict keys, so both edits are preserved
+    assert.equal(result.success, true, 'Different conflict keys means no conflict');
+    assert.equal(result.merged.edits.length, 2);
+  });
+
+  it('allows different annotation operations on same block and same findText', () => {
+    const editsA = {
+      edits: [
+        { blockId: 'b001', operation: 'highlight', findText: 'shared text', color: '#FFEB3B' }
+      ]
+    };
+    const editsB = {
+      edits: [
+        { blockId: 'b001', operation: 'commentRange', findText: 'shared text', comment: 'A comment' }
+      ]
+    };
+
+    const result = mergeEdits([editsA, editsB]);
+
+    // Different operations on the same findText use different composite keys
+    assert.equal(result.success, true, 'Different operations should not conflict');
+    assert.equal(result.merged.edits.length, 2);
+  });
+});
+
+// ====================================================================
+// v0.3.0 normalizeEdit Tests
+// ====================================================================
+
+describe('normalizeEdit - v0.3.0 field normalization', () => {
+  it('normalizes search to findText', () => {
+    const edit = {
+      blockId: 'b001',
+      operation: 'highlight',
+      search: 'target text'
+    };
+
+    const normalized = normalizeEdit(edit);
+
+    assert.equal(normalized.findText, 'target text');
+    assert.equal(normalized.search, undefined, 'Original field should be removed');
+  });
+
+  it('normalizes searchText to findText', () => {
+    const edit = {
+      blockId: 'b001',
+      operation: 'commentRange',
+      searchText: 'target text',
+      comment: 'A comment'
+    };
+
+    const normalized = normalizeEdit(edit);
+
+    assert.equal(normalized.findText, 'target text');
+    assert.equal(normalized.searchText, undefined, 'Original field should be removed');
+  });
+
+  it('normalizes highlightColor to color', () => {
+    const edit = {
+      blockId: 'b001',
+      operation: 'highlight',
+      findText: 'some text',
+      highlightColor: '#FF0000'
+    };
+
+    const normalized = normalizeEdit(edit);
+
+    assert.equal(normalized.color, '#FF0000');
+    assert.equal(normalized.highlightColor, undefined, 'Original field should be removed');
+  });
+
+  it('does not overwrite existing findText with search variant', () => {
+    const edit = {
+      blockId: 'b001',
+      operation: 'highlight',
+      findText: 'correct text',
+      search: 'wrong text'
+    };
+
+    const normalized = normalizeEdit(edit);
+
+    assert.equal(normalized.findText, 'correct text', 'Existing findText should take precedence');
+  });
+
+  it('does not overwrite existing color with highlightColor', () => {
+    const edit = {
+      blockId: 'b001',
+      operation: 'highlight',
+      findText: 'text',
+      color: '#00FF00',
+      highlightColor: '#FF0000'
+    };
+
+    const normalized = normalizeEdit(edit);
+
+    assert.equal(normalized.color, '#00FF00', 'Existing color should take precedence');
   });
 });

@@ -99,6 +99,20 @@ export function normalizeEdit(edit) {
     delete normalized.reason;
   }
 
+  // Normalize findText field (search, searchText, text_to_find → findText)
+  if (!normalized.findText) {
+    normalized.findText = edit.search || edit.searchText || edit.text_to_find;
+    delete normalized.search;
+    delete normalized.searchText;
+    delete normalized.text_to_find;
+  }
+
+  // Normalize color field (highlightColor → color)
+  if (!normalized.color) {
+    normalized.color = edit.highlightColor;
+    delete normalized.highlightColor;
+  }
+
   // Clean up extra fields that are not part of the standard format
   delete normalized.original;
   delete normalized.old;
@@ -180,9 +194,19 @@ export async function mergeEditFiles(editFilePaths, options = {}) {
         editIndex
       };
 
+      // Annotation operations (non-destructive) can coexist on same block
+      const annotationOps = ['insertAfterText', 'commentRange', 'highlight', 'commentHighlight'];
+      const isAnnotationOp = annotationOps.includes(edit.operation);
+
+      // Use composite key for annotation ops: blockId + findText
+      // Destructive ops (replace, delete) use just blockId
+      const conflictKey = isAnnotationOp && edit.findText
+        ? `${blockId}::${edit.operation}::${edit.findText}`
+        : blockId;
+
       // Check for conflicts
-      if (editsByBlockId.has(blockId)) {
-        const existing = editsByBlockId.get(blockId);
+      if (editsByBlockId.has(conflictKey)) {
+        const existing = editsByBlockId.get(conflictKey);
         const conflict = {
           blockId,
           edits: [existing, edit],
@@ -200,13 +224,16 @@ export async function mergeEditFiles(editFilePaths, options = {}) {
           continue;
         } else if (conflictStrategy === 'last') {
           // Replace existing with new
-          const idx = allEdits.findIndex(e =>
-            (e.blockId || e.afterBlockId) === blockId
-          );
+          const idx = allEdits.findIndex(e => {
+            const eKey = (annotationOps.includes(e.operation) && e.findText)
+              ? `${e.blockId || e.afterBlockId}::${e.operation}::${e.findText}`
+              : (e.blockId || e.afterBlockId);
+            return eKey === conflictKey;
+          });
           if (idx !== -1) {
             allEdits[idx] = edit;
           }
-          editsByBlockId.set(blockId, edit);
+          editsByBlockId.set(conflictKey, edit);
           conflict.resolution = 'last';
           continue;
         } else if (conflictStrategy === 'combine') {
@@ -223,7 +250,13 @@ export async function mergeEditFiles(editFilePaths, options = {}) {
         }
       }
 
-      editsByBlockId.set(blockId, edit);
+      // For destructive ops, also check if block already has an annotation (no conflict)
+      // For annotation ops targeting same block as a destructive op, that IS a conflict
+      if (!isAnnotationOp && editsByBlockId.has(blockId)) {
+        // Already handled above
+      }
+
+      editsByBlockId.set(conflictKey, edit);
       allEdits.push(edit);
     }
   }
@@ -325,9 +358,17 @@ export function mergeEdits(editFiles, options = {}) {
         editIndex
       };
 
+      // Annotation operations can coexist on same block
+      const annotationOps = ['insertAfterText', 'commentRange', 'highlight', 'commentHighlight'];
+      const isAnnotationOp = annotationOps.includes(edit.operation);
+
+      const conflictKey = isAnnotationOp && edit.findText
+        ? `${blockId}::${edit.operation}::${edit.findText}`
+        : blockId;
+
       // Check for conflicts
-      if (editsByBlockId.has(blockId)) {
-        const existing = editsByBlockId.get(blockId);
+      if (editsByBlockId.has(conflictKey)) {
+        const existing = editsByBlockId.get(conflictKey);
         const conflict = {
           blockId,
           edits: [existing, edit],
@@ -341,13 +382,16 @@ export function mergeEdits(editFiles, options = {}) {
           conflict.resolution = 'first';
           continue;
         } else if (conflictStrategy === 'last') {
-          const idx = allEdits.findIndex(e =>
-            (e.blockId || e.afterBlockId) === blockId
-          );
+          const idx = allEdits.findIndex(e => {
+            const eKey = (annotationOps.includes(e.operation) && e.findText)
+              ? `${e.blockId || e.afterBlockId}::${e.operation}::${e.findText}`
+              : (e.blockId || e.afterBlockId);
+            return eKey === conflictKey;
+          });
           if (idx !== -1) {
             allEdits[idx] = edit;
           }
-          editsByBlockId.set(blockId, edit);
+          editsByBlockId.set(conflictKey, edit);
           conflict.resolution = 'last';
           continue;
         } else if (conflictStrategy === 'combine') {
@@ -361,7 +405,7 @@ export function mergeEdits(editFiles, options = {}) {
         }
       }
 
-      editsByBlockId.set(blockId, edit);
+      editsByBlockId.set(conflictKey, edit);
       allEdits.push(edit);
     }
   }
@@ -431,7 +475,7 @@ export function validateMergedEdits(mergedEdits, ir) {
   const issues = [];
   const blockIdSet = new Set(ir.blocks.map(b => b.id));
   const seqIdSet = new Set(ir.blocks.map(b => b.seqId));
-  const validOperations = ['replace', 'delete', 'comment', 'insert'];
+  const validOperations = ['replace', 'delete', 'comment', 'insert', 'insertAfterText', 'highlight', 'commentRange', 'commentHighlight'];
 
   // Track deleted blocks for detecting delete-then-reference conflicts
   const deletedBlocks = new Set();

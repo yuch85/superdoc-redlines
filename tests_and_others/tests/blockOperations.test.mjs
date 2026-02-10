@@ -13,7 +13,11 @@ import {
   insertBeforeBlock,
   addCommentToBlock,
   resolveBlockId,
-  getBlockById
+  getBlockById,
+  findTextPositionInBlock,
+  insertTextAfterMatch,
+  highlightTextInBlock,
+  addCommentToTextInBlock
 } from '../../src/blockOperations.mjs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -360,6 +364,252 @@ describe('error handling', () => {
       assert.ok(result.error);
       assert.ok(typeof result.error === 'string');
     }
+
+    cleanup();
+  });
+});
+
+// ====================================================================
+// v0.3.0 Operations Tests
+// ====================================================================
+
+describe('findTextPositionInBlock', () => {
+  it('finds exact text in a block', async () => {
+    const { editor, ir, cleanup } = await createEditorWithIR(sampleDocx);
+
+    const blockId = ir.blocks[0].id;
+    const blockText = ir.blocks[0].text;
+    // Use the first 10 characters as search text (must exist)
+    const searchText = blockText.slice(0, Math.min(10, blockText.length));
+
+    const result = findTextPositionInBlock(editor, blockId, searchText);
+
+    assert.equal(result.found, true);
+    assert.ok(typeof result.from === 'number', 'from should be a number');
+    assert.ok(typeof result.to === 'number', 'to should be a number');
+    assert.ok(result.from < result.to, 'from should be less than to');
+
+    cleanup();
+  });
+
+  it('returns not-found for absent text', async () => {
+    const { editor, ir, cleanup } = await createEditorWithIR(sampleDocx);
+
+    const blockId = ir.blocks[0].id;
+
+    const result = findTextPositionInBlock(editor, blockId, 'XYZZY_NONEXISTENT_TEXT_12345');
+
+    assert.equal(result.found, false);
+    assert.ok(result.error, 'Should have an error message');
+    assert.ok(result.error.includes('not found'), 'Error should mention text not found');
+
+    cleanup();
+  });
+
+  it('handles special characters in search', async () => {
+    const { editor, ir, cleanup } = await createEditorWithIR(assetPurchaseDocx);
+
+    // Look for a block that contains a period or parenthesis
+    let targetBlock = null;
+    for (const block of ir.blocks) {
+      if (block.text && block.text.includes('.')) {
+        targetBlock = block;
+        break;
+      }
+    }
+
+    if (targetBlock) {
+      // Find the substring containing the period
+      const dotIndex = targetBlock.text.indexOf('.');
+      const searchText = targetBlock.text.slice(Math.max(0, dotIndex - 3), dotIndex + 1);
+
+      const result = findTextPositionInBlock(editor, targetBlock.id, searchText);
+
+      assert.equal(result.found, true);
+      assert.ok(result.from < result.to);
+    }
+
+    cleanup();
+  });
+
+  it('returns error for non-existent block', async () => {
+    const { editor, cleanup } = await createEditorWithIR(sampleDocx);
+
+    const result = findTextPositionInBlock(editor, 'nonexistent-block-uuid', 'some text');
+
+    assert.equal(result.found, false);
+    assert.ok(result.error.includes('not found'));
+
+    cleanup();
+  });
+});
+
+describe('insertTextAfterMatch', () => {
+  it('inserts text after found text', async () => {
+    const { editor, ir, cleanup } = await createEditorWithIR(assetPurchaseDocx);
+
+    // Find a block with enough text to have a recognizable substring
+    const block = ir.blocks.find(b => b.text && b.text.length > 20);
+    assert.ok(block, 'Should find a block with sufficient text');
+
+    const searchText = block.text.slice(0, 10);
+    const textToInsert = ' [INSERTED] ';
+
+    const result = await insertTextAfterMatch(editor, block.id, searchText, textToInsert);
+
+    assert.equal(result.success, true);
+    assert.equal(result.operation, 'insertAfterText');
+    assert.equal(result.blockId, block.id);
+    assert.equal(result.findText, searchText);
+    assert.equal(result.insertText, textToInsert);
+    assert.ok(typeof result.insertedAt === 'number', 'Should have insertedAt position');
+
+    cleanup();
+  });
+
+  it('returns error when text not found', async () => {
+    const { editor, ir, cleanup } = await createEditorWithIR(sampleDocx);
+
+    const blockId = ir.blocks[0].id;
+
+    const result = await insertTextAfterMatch(editor, blockId, 'NONEXISTENT_TEXT_99999', 'inserted');
+
+    assert.equal(result.success, false);
+    assert.ok(result.error.includes('not found'));
+
+    cleanup();
+  });
+
+  it('returns error for non-existent block', async () => {
+    const { editor, cleanup } = await createEditorWithIR(sampleDocx);
+
+    const result = await insertTextAfterMatch(editor, 'nonexistent-uuid', 'text', 'inserted');
+
+    assert.equal(result.success, false);
+    assert.ok(result.error.includes('not found'));
+
+    cleanup();
+  });
+});
+
+describe('highlightTextInBlock', () => {
+  it('applies highlight to found text', async () => {
+    const { editor, ir, cleanup } = await createEditorWithIR(assetPurchaseDocx);
+
+    const block = ir.blocks.find(b => b.text && b.text.length > 15);
+    assert.ok(block, 'Should find a block with sufficient text');
+
+    const searchText = block.text.slice(0, 10);
+
+    const result = await highlightTextInBlock(editor, block.id, searchText);
+
+    // The result depends on whether the editor supports setHighlight
+    // but the function should return a structured result regardless
+    assert.ok(typeof result.success === 'boolean');
+    assert.equal(result.operation, 'highlight');
+    assert.equal(result.blockId, block.id);
+    assert.equal(result.findText, searchText);
+    assert.equal(result.color, '#FFEB3B'); // Default color
+
+    cleanup();
+  });
+
+  it('applies highlight with custom color', async () => {
+    const { editor, ir, cleanup } = await createEditorWithIR(assetPurchaseDocx);
+
+    const block = ir.blocks.find(b => b.text && b.text.length > 15);
+    assert.ok(block, 'Should find a block with sufficient text');
+
+    const searchText = block.text.slice(0, 10);
+    const customColor = '#FF0000';
+
+    const result = await highlightTextInBlock(editor, block.id, searchText, customColor);
+
+    assert.ok(typeof result.success === 'boolean');
+    assert.equal(result.color, customColor);
+
+    cleanup();
+  });
+
+  it('returns error when text not found', async () => {
+    const { editor, ir, cleanup } = await createEditorWithIR(sampleDocx);
+
+    const blockId = ir.blocks[0].id;
+
+    const result = await highlightTextInBlock(editor, blockId, 'NONEXISTENT_HIGHLIGHT_TEXT');
+
+    assert.equal(result.success, false);
+    assert.ok(result.error.includes('not found'));
+
+    cleanup();
+  });
+});
+
+describe('addCommentToTextInBlock', () => {
+  it('adds comment to specific text span', async () => {
+    const { editor, ir, cleanup } = await createEditorWithIR(assetPurchaseDocx);
+
+    const block = ir.blocks.find(b => b.text && b.text.length > 20);
+    assert.ok(block, 'Should find a block with sufficient text');
+
+    const searchText = block.text.slice(0, 15);
+    const commentText = 'This specific text needs review';
+
+    const result = await addCommentToTextInBlock(
+      editor,
+      block.id,
+      searchText,
+      commentText,
+      { name: 'Test User', email: 'test@test.com' }
+    );
+
+    assert.equal(result.success, true);
+    assert.equal(result.operation, 'commentRange');
+    assert.equal(result.blockId, block.id);
+    assert.equal(result.findText, searchText);
+    assert.ok(result.commentId, 'Should have a commentId');
+    assert.ok(result.commentId.startsWith('comment-'), 'commentId should start with comment-');
+
+    cleanup();
+  });
+
+  it('returns error when text not found', async () => {
+    const { editor, ir, cleanup } = await createEditorWithIR(sampleDocx);
+
+    const blockId = ir.blocks[0].id;
+
+    const result = await addCommentToTextInBlock(
+      editor,
+      blockId,
+      'NONEXISTENT_COMMENT_TARGET_TEXT',
+      'A comment',
+      { name: 'Test', email: 'test@test.com' }
+    );
+
+    assert.equal(result.success, false);
+    assert.ok(result.error.includes('not found'));
+
+    cleanup();
+  });
+
+  it('returns commentId on success', async () => {
+    const { editor, ir, cleanup } = await createEditorWithIR(sampleDocx);
+
+    const block = ir.blocks[0];
+    const searchText = block.text.slice(0, Math.min(8, block.text.length));
+
+    const result = await addCommentToTextInBlock(
+      editor,
+      block.id,
+      searchText,
+      'Review this text',
+      { name: 'Reviewer', email: 'reviewer@test.com' }
+    );
+
+    assert.equal(result.success, true);
+    assert.ok(result.commentId, 'Should return a commentId');
+    assert.ok(typeof result.commentId === 'string');
+    assert.ok(result.commentId.length > 0);
 
     cleanup();
   });

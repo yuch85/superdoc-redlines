@@ -15,10 +15,14 @@ import { computeWordDiff, diffToOperations } from './wordDiff.mjs';
 /**
  * @typedef {Object} OperationResult
  * @property {boolean} success
- * @property {'replace'|'delete'|'insert'|'comment'} [operation]
+ * @property {'replace'|'delete'|'insert'|'comment'|'insertAfterText'|'highlight'|'commentRange'|'commentHighlight'} [operation]
  * @property {string} [blockId]
  * @property {string} [newBlockId] - For insert operations
  * @property {string} [commentId] - For comment operations
+ * @property {string} [findText] - For text-span operations
+ * @property {string} [insertText] - For insertAfterText
+ * @property {number} [insertedAt] - Editor position where text was inserted
+ * @property {string} [color] - For highlight operations
  * @property {string} [error]
  * @property {{ insertions: number, deletions: number, unchanged: number }} [diffStats]
  */
@@ -863,5 +867,211 @@ export function getBlockById(editor, blockId) {
     node,
     pos,
     blockId: resolvedId
+  };
+}
+
+/**
+ * Find the editor position of a specific text within a block.
+ * Uses the existing buildPositionMap infrastructure.
+ *
+ * @param {Editor} editor - SuperDoc editor instance
+ * @param {string} blockId - UUID or seqId of target block
+ * @param {string} searchText - Exact text to find (case-sensitive)
+ * @returns {{ found: boolean, from?: number, to?: number, error?: string }}
+ */
+export function findTextPositionInBlock(editor, blockId, searchText) {
+  const resolvedId = resolveBlockId(editor, blockId);
+  if (!resolvedId) {
+    return { found: false, error: `Block not found: ${blockId}` };
+  }
+
+  const blockInfo = getBlockInfo(editor, resolvedId);
+  if (!blockInfo) {
+    return { found: false, error: `Block not found: ${resolvedId}` };
+  }
+
+  const { node, pos } = blockInfo;
+  const blockText = extractNodeText(node);
+  const textIndex = blockText.indexOf(searchText);
+
+  if (textIndex === -1) {
+    return { found: false, error: `Text "${searchText}" not found in block ${blockId}` };
+  }
+
+  const positionMap = buildPositionMap(editor, pos, blockText, node.nodeSize);
+
+  const validation = positionMap._validation;
+  if (validation && !validation.valid) {
+    console.warn(`[findTextPositionInBlock] Position map validation failed for block ${blockId}: ${validation.errors.slice(0, 3).join('; ')}`);
+  }
+
+  const from = positionMap[textIndex];
+  const toTextPos = textIndex + searchText.length - 1;
+  const to = positionMap[toTextPos] !== undefined ? positionMap[toTextPos] + 1 : undefined;
+
+  if (from === undefined || to === undefined) {
+    return { found: false, error: `Could not map text position to editor position` };
+  }
+
+  return { found: true, from, to };
+}
+
+/**
+ * Find text within a block and insert new text immediately after it.
+ *
+ * @param {Editor} editor - SuperDoc editor instance
+ * @param {string} blockId - UUID or seqId of target block
+ * @param {string} searchText - Exact text to find (case-sensitive)
+ * @param {string} textToInsert - Text to insert immediately after searchText
+ * @param {Object} options
+ * @param {boolean} [options.trackChanges=false] - If true, insertion appears as tracked change
+ * @param {Author} [options.author] - Author info for track changes
+ * @returns {Promise<OperationResult>}
+ */
+export async function insertTextAfterMatch(editor, blockId, searchText, textToInsert, options = {}) {
+  const { trackChanges = false, author = DEFAULT_AUTHOR } = options;
+
+  const resolvedId = resolveBlockId(editor, blockId);
+  if (!resolvedId) {
+    return { success: false, error: `Block not found: ${blockId}` };
+  }
+
+  const blockInfo = getBlockInfo(editor, resolvedId);
+  if (!blockInfo) {
+    return { success: false, error: `Block not found: ${resolvedId}` };
+  }
+
+  const { node, pos } = blockInfo;
+  const blockText = extractNodeText(node);
+  const textIndex = blockText.indexOf(searchText);
+
+  if (textIndex === -1) {
+    return { success: false, error: `Text "${searchText}" not found in block ${blockId}` };
+  }
+
+  const positionMap = buildPositionMap(editor, pos, blockText, node.nodeSize);
+
+  const validation = positionMap._validation;
+  if (validation && !validation.valid) {
+    console.warn(`[insertTextAfterMatch] Position map validation failed for block ${blockId}: ${validation.errors.slice(0, 3).join('; ')}`);
+  }
+
+  // Insert AFTER the last character of searchText
+  const afterLastCharTextPos = textIndex + searchText.length - 1;
+  const insertEditorPos = positionMap[afterLastCharTextPos] !== undefined
+    ? positionMap[afterLastCharTextPos] + 1
+    : undefined;
+
+  if (insertEditorPos === undefined) {
+    return { success: false, error: `Could not map text position to editor position` };
+  }
+
+  if (trackChanges && editor.setDocumentMode) {
+    editor.setDocumentMode('suggesting');
+  }
+
+  let success;
+  if (editor.chain) {
+    success = editor.chain()
+      .setTextSelection({ from: insertEditorPos, to: insertEditorPos })
+      .insertContent(textToInsert)
+      .run();
+  } else {
+    editor.commands.setTextSelection({ from: insertEditorPos, to: insertEditorPos });
+    success = editor.commands.insertContent(textToInsert);
+  }
+
+  return {
+    success: !!success,
+    operation: 'insertAfterText',
+    blockId,
+    findText: searchText,
+    insertText: textToInsert,
+    insertedAt: insertEditorPos
+  };
+}
+
+/**
+ * Apply highlight to specific text within a block.
+ *
+ * @param {Editor} editor - SuperDoc editor instance
+ * @param {string} blockId - UUID or seqId of target block
+ * @param {string} searchText - Exact text to highlight
+ * @param {string} color - CSS colour value (default: '#FFEB3B')
+ * @param {Object} options
+ * @param {Author} [options.author] - Author info
+ * @returns {Promise<OperationResult>}
+ */
+export async function highlightTextInBlock(editor, blockId, searchText, color = '#FFEB3B', options = {}) {
+  const position = findTextPositionInBlock(editor, blockId, searchText);
+  if (!position.found) {
+    return { success: false, error: position.error };
+  }
+
+  const { from, to } = position;
+
+  let success;
+  if (editor.chain) {
+    success = editor.chain()
+      .setTextSelection({ from, to })
+      .setHighlight(color)
+      .run();
+  } else {
+    editor.commands.setTextSelection({ from, to });
+    success = editor.commands.setHighlight
+      ? editor.commands.setHighlight(color)
+      : false;
+  }
+
+  return {
+    success: !!success,
+    operation: 'highlight',
+    blockId,
+    findText: searchText,
+    color
+  };
+}
+
+/**
+ * Add a comment anchored to specific text within a block.
+ *
+ * @param {Editor} editor - SuperDoc editor instance
+ * @param {string} blockId - UUID or seqId of target block
+ * @param {string} searchText - Exact text to anchor comment to
+ * @param {string} commentText - Comment content
+ * @param {Author} [author] - Author info
+ * @returns {Promise<OperationResult>}
+ */
+export async function addCommentToTextInBlock(editor, blockId, searchText, commentText, author = DEFAULT_AUTHOR) {
+  const position = findTextPositionInBlock(editor, blockId, searchText);
+  if (!position.found) {
+    return { success: false, error: position.error };
+  }
+
+  const { from, to } = position;
+  const commentId = generateCommentId();
+
+  editor.commands.setTextSelection({ from, to });
+
+  if (editor.chain) {
+    editor.chain()
+      .setMark('commentMark', {
+        commentId: commentId,
+        internal: false,
+      })
+      .run();
+  } else if (editor.commands.setMark) {
+    editor.commands.setMark('commentMark', {
+      commentId: commentId,
+      internal: false,
+    });
+  }
+
+  return {
+    success: true,
+    operation: 'commentRange',
+    blockId,
+    findText: searchText,
+    commentId
   };
 }

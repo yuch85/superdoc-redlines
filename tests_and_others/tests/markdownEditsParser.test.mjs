@@ -764,6 +764,324 @@ This should NOT be in newText.
   });
 });
 
+// ====================================================================
+// v0.3.0 Extended Format Tests
+// ====================================================================
+
+describe('parseMarkdownEdits - v0.3.0 extended 6-column format', () => {
+  it('parses 6-column table with insertAfterText', () => {
+    const markdown = `
+## Edits Table
+
+| Block | Op | FindText | Color | Diff | Comment |
+|-------|-----|----------|-------|------|---------|
+| b100 | insertAfterText | defined terms | - | - | , including all ancillary definitions |
+`;
+
+    const result = parseMarkdownEdits(markdown);
+
+    assert.strictEqual(result.edits.length, 1);
+    assert.strictEqual(result.edits[0].blockId, 'b100');
+    assert.strictEqual(result.edits[0].operation, 'insertAfterText');
+    assert.strictEqual(result.edits[0].findText, 'defined terms');
+    assert.strictEqual(result.edits[0].insertText, ', including all ancillary definitions');
+    assert.strictEqual(result.edits[0].color, undefined);
+  });
+
+  it('parses 6-column table with commentRange', () => {
+    const markdown = `
+## Edits Table
+
+| Block | Op | FindText | Color | Diff | Comment |
+|-------|-----|----------|-------|------|---------|
+| b050 | commentRange | governing law clause | - | - | This clause needs jurisdiction review |
+`;
+
+    const result = parseMarkdownEdits(markdown);
+
+    assert.strictEqual(result.edits.length, 1);
+    assert.strictEqual(result.edits[0].blockId, 'b050');
+    assert.strictEqual(result.edits[0].operation, 'commentRange');
+    assert.strictEqual(result.edits[0].findText, 'governing law clause');
+    assert.strictEqual(result.edits[0].comment, 'This clause needs jurisdiction review');
+  });
+
+  it('parses 6-column table with highlight and color', () => {
+    const markdown = `
+## Edits Table
+
+| Block | Op | FindText | Color | Diff | Comment |
+|-------|-----|----------|-------|------|---------|
+| b075 | highlight | material adverse change | #FF0000 | - | - |
+`;
+
+    const result = parseMarkdownEdits(markdown);
+
+    assert.strictEqual(result.edits.length, 1);
+    assert.strictEqual(result.edits[0].blockId, 'b075');
+    assert.strictEqual(result.edits[0].operation, 'highlight');
+    assert.strictEqual(result.edits[0].findText, 'material adverse change');
+    assert.strictEqual(result.edits[0].color, '#FF0000');
+  });
+
+  it('parses 6-column table with commentHighlight', () => {
+    const markdown = `
+## Edits Table
+
+| Block | Op | FindText | Color | Diff | Comment |
+|-------|-----|----------|-------|------|---------|
+| b200 | commentHighlight | indemnification | #FFF176 | - | This indemnification clause is too broad |
+`;
+
+    const result = parseMarkdownEdits(markdown);
+
+    assert.strictEqual(result.edits.length, 1);
+    assert.strictEqual(result.edits[0].blockId, 'b200');
+    assert.strictEqual(result.edits[0].operation, 'commentHighlight');
+    assert.strictEqual(result.edits[0].findText, 'indemnification');
+    assert.strictEqual(result.edits[0].color, '#FFF176');
+    assert.strictEqual(result.edits[0].comment, 'This indemnification clause is too broad');
+  });
+
+  it('still parses 4-column table (backward compatibility)', () => {
+    const markdown = `
+## Edits Table
+
+| Block | Op | Diff | Comment |
+|-------|-----|------|---------|
+| b001 | delete | - | Remove old clause |
+| b002 | replace | true | Update text |
+
+### b002 newText
+Updated replacement content.
+`;
+
+    const result = parseMarkdownEdits(markdown);
+
+    assert.strictEqual(result.edits.length, 2);
+    assert.strictEqual(result.edits[0].blockId, 'b001');
+    assert.strictEqual(result.edits[0].operation, 'delete');
+    assert.strictEqual(result.edits[0].comment, 'Remove old clause');
+    assert.strictEqual(result.edits[1].blockId, 'b002');
+    assert.strictEqual(result.edits[1].operation, 'replace');
+    assert.strictEqual(result.edits[1].diff, true);
+    assert.strictEqual(result.edits[1].newText, 'Updated replacement content.');
+  });
+
+  it('normalizes operation case (insertaftertext to insertAfterText)', () => {
+    const markdown = `
+## Edits Table
+
+| Block | Op | FindText | Color | Diff | Comment |
+|-------|-----|----------|-------|------|---------|
+| b100 | INSERTAFTERTEXT | target text | - | - | additional text |
+| b200 | CommentRange | clause text | - | - | Needs review |
+| b300 | COMMENTHIGHLIGHT | important | #FFF176 | - | Flagged |
+`;
+
+    const result = parseMarkdownEdits(markdown);
+
+    assert.strictEqual(result.edits.length, 3);
+    assert.strictEqual(result.edits[0].operation, 'insertAfterText');
+    assert.strictEqual(result.edits[1].operation, 'commentRange');
+    assert.strictEqual(result.edits[2].operation, 'commentHighlight');
+  });
+
+  it('parses mixed 6-column table with old and new operations', () => {
+    const markdown = `
+## Edits Table
+
+| Block | Op | FindText | Color | Diff | Comment |
+|-------|-----|----------|-------|------|---------|
+| b001 | delete | - | - | - | Remove clause |
+| b002 | replace | - | - | true | Update clause |
+| b003 | highlight | key term | #FFEB3B | - | - |
+| b004 | commentRange | liability | - | - | Review liability scope |
+| b005 | insert | - | - | - | Add new section |
+
+### b002 newText
+The updated clause content.
+
+### b005 insertText
+New section content here.
+`;
+
+    const result = parseMarkdownEdits(markdown);
+
+    assert.strictEqual(result.edits.length, 5);
+    assert.strictEqual(result.edits[0].operation, 'delete');
+    assert.strictEqual(result.edits[1].operation, 'replace');
+    assert.strictEqual(result.edits[1].newText, 'The updated clause content.');
+    assert.strictEqual(result.edits[2].operation, 'highlight');
+    assert.strictEqual(result.edits[2].findText, 'key term');
+    assert.strictEqual(result.edits[3].operation, 'commentRange');
+    assert.strictEqual(result.edits[3].findText, 'liability');
+    assert.strictEqual(result.edits[4].operation, 'insert');
+    assert.strictEqual(result.edits[4].text, 'New section content here.');
+  });
+});
+
+describe('editsToMarkdown - v0.3.0 extended format', () => {
+  it('generates 6-column table when edits use new operations', () => {
+    const json = {
+      version: '0.3.0',
+      author: { name: 'Test', email: 'test@test.com' },
+      edits: [
+        {
+          blockId: 'b100',
+          operation: 'highlight',
+          findText: 'key clause',
+          color: '#FFEB3B'
+        },
+        {
+          blockId: 'b200',
+          operation: 'commentRange',
+          findText: 'liability section',
+          comment: 'Review this'
+        }
+      ]
+    };
+
+    const markdown = editsToMarkdown(json);
+
+    assert.ok(markdown.includes('| Block | Op | FindText | Color | Diff | Comment |'), 'Should have 6-column header');
+    assert.ok(markdown.includes('| b100 | highlight | key clause | #FFEB3B | - |'));
+    assert.ok(markdown.includes('| b200 | commentRange | liability section | - | - | Review this |'));
+  });
+
+  it('generates 4-column table when edits use only old operations', () => {
+    const json = {
+      version: '0.2.0',
+      author: { name: 'Test', email: 'test@test.com' },
+      edits: [
+        { blockId: 'b001', operation: 'delete', comment: 'Remove' },
+        { blockId: 'b002', operation: 'comment', comment: 'Review' }
+      ]
+    };
+
+    const markdown = editsToMarkdown(json);
+
+    assert.ok(markdown.includes('| Block | Op | Diff | Comment |'), 'Should have 4-column header');
+    assert.ok(!markdown.includes('FindText'), 'Should NOT have FindText column');
+    assert.ok(markdown.includes('| b001 | delete | - | Remove |'));
+    assert.ok(markdown.includes('| b002 | comment | - | Review |'));
+  });
+
+  it('generates 6-column table for insertAfterText with insertText in comment column', () => {
+    const json = {
+      version: '0.3.0',
+      author: { name: '', email: '' },
+      edits: [
+        {
+          blockId: 'b050',
+          operation: 'insertAfterText',
+          findText: 'defined terms',
+          insertText: ', including ancillary definitions'
+        }
+      ]
+    };
+
+    const markdown = editsToMarkdown(json);
+
+    assert.ok(markdown.includes('| Block | Op | FindText | Color | Diff | Comment |'));
+    assert.ok(markdown.includes('| b050 | insertAfterText | defined terms | - | - | , including ancillary definitions |'));
+  });
+
+  it('round-trips new operations through markdown', () => {
+    const originalJson = {
+      version: '0.3.0',
+      author: { name: 'AI Counsel', email: 'ai@firm.com' },
+      edits: [
+        {
+          blockId: 'b001',
+          operation: 'highlight',
+          findText: 'material breach',
+          color: '#FF0000'
+        },
+        {
+          blockId: 'b002',
+          operation: 'commentRange',
+          findText: 'governing law',
+          comment: 'Check jurisdiction'
+        },
+        {
+          blockId: 'b003',
+          operation: 'insertAfterText',
+          findText: 'existing clause',
+          insertText: ' plus additional terms'
+        },
+        {
+          blockId: 'b004',
+          operation: 'commentHighlight',
+          findText: 'indemnification',
+          color: '#FFF176',
+          comment: 'Scope too broad'
+        },
+        {
+          blockId: 'b005',
+          operation: 'delete',
+          comment: 'Remove old section'
+        },
+        {
+          blockId: 'b006',
+          operation: 'replace',
+          diff: true,
+          comment: 'Update jurisdiction',
+          newText: 'Updated clause content.'
+        }
+      ]
+    };
+
+    // Convert to markdown
+    const markdown = editsToMarkdown(originalJson);
+
+    // Parse back to JSON
+    const parsedJson = parseMarkdownEdits(markdown);
+
+    // Verify round-trip
+    assert.strictEqual(parsedJson.version, '0.3.0');
+    assert.strictEqual(parsedJson.author.name, 'AI Counsel');
+    assert.strictEqual(parsedJson.edits.length, 6);
+
+    // Highlight
+    assert.strictEqual(parsedJson.edits[0].blockId, 'b001');
+    assert.strictEqual(parsedJson.edits[0].operation, 'highlight');
+    assert.strictEqual(parsedJson.edits[0].findText, 'material breach');
+    assert.strictEqual(parsedJson.edits[0].color, '#FF0000');
+
+    // CommentRange
+    assert.strictEqual(parsedJson.edits[1].blockId, 'b002');
+    assert.strictEqual(parsedJson.edits[1].operation, 'commentRange');
+    assert.strictEqual(parsedJson.edits[1].findText, 'governing law');
+    assert.strictEqual(parsedJson.edits[1].comment, 'Check jurisdiction');
+
+    // InsertAfterText
+    assert.strictEqual(parsedJson.edits[2].blockId, 'b003');
+    assert.strictEqual(parsedJson.edits[2].operation, 'insertAfterText');
+    assert.strictEqual(parsedJson.edits[2].findText, 'existing clause');
+    // The markdown table cell trims leading/trailing whitespace, so leading space is lost in round-trip
+    assert.ok(parsedJson.edits[2].insertText.includes('plus additional terms'));
+
+    // CommentHighlight
+    assert.strictEqual(parsedJson.edits[3].blockId, 'b004');
+    assert.strictEqual(parsedJson.edits[3].operation, 'commentHighlight');
+    assert.strictEqual(parsedJson.edits[3].findText, 'indemnification');
+    assert.strictEqual(parsedJson.edits[3].color, '#FFF176');
+    assert.strictEqual(parsedJson.edits[3].comment, 'Scope too broad');
+
+    // Delete (backward compat in 6-column format)
+    assert.strictEqual(parsedJson.edits[4].blockId, 'b005');
+    assert.strictEqual(parsedJson.edits[4].operation, 'delete');
+    assert.strictEqual(parsedJson.edits[4].comment, 'Remove old section');
+
+    // Replace (backward compat in 6-column format)
+    assert.strictEqual(parsedJson.edits[5].blockId, 'b006');
+    assert.strictEqual(parsedJson.edits[5].operation, 'replace');
+    assert.strictEqual(parsedJson.edits[5].diff, true);
+    assert.strictEqual(parsedJson.edits[5].newText, 'Updated clause content.');
+  });
+});
+
 describe('Regression: Content Omission Fix', () => {
   it('should not omit simple delete operations in large edit sets', () => {
     // Build a large edit set with many operations

@@ -85,8 +85,8 @@ export function parseMarkdownEdits(markdown) {
     textSections.set(`${blockId}_${textType}`, textContent);
   }
 
-  // Find and parse the edits table
-  const tableMatch = markdown.match(/\|\s*Block\s*\|\s*Op\s*\|\s*Diff\s*\|\s*Comment\s*\|[\s\S]*?(?=\n##|\n###|$)/i);
+  // Find and parse the edits table (supports both 4-column v0.2.0 and 6-column v0.3.0 format)
+  const tableMatch = markdown.match(/\|\s*Block\s*\|\s*Op\s*\|\s*(?:FindText\s*\|\s*Color\s*\|\s*)?Diff\s*\|\s*Comment[\s\S]*?(?=\n##|\n###|$)/i);
   if (!tableMatch) {
     return result;
   }
@@ -157,10 +157,28 @@ function parseTableRow(line, textSections) {
     return null;
   }
 
-  const blockId = cleanCells[0];
-  const operation = cleanCells[1]?.toLowerCase();
-  const diffValue = cleanCells[2] || '-';
-  const comment = cleanCells[3] || '';
+  // Detect format: 6-column (v0.3.0) vs 4-column (v0.2.0)
+  // 4-column: Block | Op | Diff | Comment
+  // 6-column: Block | Op | FindText | Color | Diff | Comment/InsertText
+  let blockId, operation, findTextValue, colorValue, diffValue, comment;
+
+  if (cleanCells.length >= 6) {
+    // 6-column format (v0.3.0)
+    blockId = cleanCells[0];
+    operation = cleanCells[1]?.toLowerCase();
+    findTextValue = cleanCells[2] || '-';
+    colorValue = cleanCells[3] || '-';
+    diffValue = cleanCells[4] || '-';
+    comment = cleanCells[5] || '';
+  } else {
+    // 4-column format (v0.2.0)
+    blockId = cleanCells[0];
+    operation = cleanCells[1]?.toLowerCase();
+    diffValue = cleanCells[2] || '-';
+    comment = cleanCells[3] || '';
+    findTextValue = '-';
+    colorValue = '-';
+  }
 
   // Validate block ID format
   if (!blockId || !/^b\d+$/i.test(blockId)) {
@@ -169,47 +187,69 @@ function parseTableRow(line, textSections) {
   }
 
   // Validate operation
-  const validOps = ['delete', 'replace', 'comment', 'insert'];
+  const validOps = ['delete', 'replace', 'comment', 'insert', 'insertaftertext', 'highlight', 'commentrange', 'commenthighlight'];
   if (!operation || !validOps.includes(operation)) {
     console.warn(`Invalid operation: ${operation}`);
     return null;
   }
 
+  // Normalize operation casing for camelCase operations
+  const opMap = {
+    'insertaftertext': 'insertAfterText',
+    'commentrange': 'commentRange',
+    'commenthighlight': 'commentHighlight'
+  };
+  const normalizedOp = opMap[operation] || operation;
+
   const edit = {
-    operation
+    operation: normalizedOp
   };
 
   // Handle insert operation - uses afterBlockId instead of blockId
-  if (operation === 'insert') {
+  if (normalizedOp === 'insert') {
     edit.afterBlockId = blockId;
   } else {
     edit.blockId = blockId;
   }
 
+  // Parse findText
+  if (findTextValue && findTextValue !== '-') {
+    edit.findText = findTextValue;
+  }
+
+  // Parse color
+  if (colorValue && colorValue !== '-') {
+    edit.color = colorValue;
+  }
+
   // Parse diff value for replace operations
-  if (operation === 'replace') {
+  if (normalizedOp === 'replace') {
     if (diffValue.toLowerCase() === 'true') {
       edit.diff = true;
     } else if (diffValue.toLowerCase() === 'false') {
       edit.diff = false;
     }
-    // If '-' or other value, don't set diff property
   }
 
   // Add comment if present
   if (comment && comment !== '-') {
-    edit.comment = comment;
+    // For insertAfterText, the comment column maps to insertText
+    if (normalizedOp === 'insertAfterText') {
+      edit.insertText = comment;
+    } else {
+      edit.comment = comment;
+    }
   }
 
   // Look up associated text for replace and insert operations
-  if (operation === 'replace') {
+  if (normalizedOp === 'replace') {
     const newText = textSections.get(`${blockId}_newtext`);
     if (newText) {
       edit.newText = newText;
     } else {
       console.warn(`Missing newText section for replace operation on ${blockId}`);
     }
-  } else if (operation === 'insert') {
+  } else if (normalizedOp === 'insert') {
     const insertText = textSections.get(`${blockId}_inserttext`);
     if (insertText) {
       edit.text = insertText;
@@ -254,11 +294,25 @@ export function editsToMarkdown(json) {
   // Edits table section
   lines.push('## Edits Table');
   lines.push('');
-  lines.push('| Block | Op | Diff | Comment |');
-  lines.push('|-------|-----|------|---------|');
 
   const edits = json.edits || [];
   const textSections = [];
+
+  // Detect if we need the extended 6-column format
+  const newOps = ['insertAfterText', 'highlight', 'commentRange', 'commentHighlight'];
+  const hasNewOps = edits.some(e =>
+    newOps.includes(e.operation) ||
+    (e.operation === 'comment' && e.findText) ||
+    e.findText || e.color
+  );
+
+  if (hasNewOps) {
+    lines.push('| Block | Op | FindText | Color | Diff | Comment |');
+    lines.push('|-------|-----|----------|-------|------|---------|');
+  } else {
+    lines.push('| Block | Op | Diff | Comment |');
+    lines.push('|-------|-----|------|---------|');
+  }
 
   for (const edit of edits) {
     const blockId = edit.blockId || edit.afterBlockId || '';
@@ -274,9 +328,19 @@ export function editsToMarkdown(json) {
       }
     }
 
-    const comment = edit.comment || '-';
+    if (hasNewOps) {
+      const findText = edit.findText || '-';
+      const color = edit.color || '-';
+      // For insertAfterText, put insertText in the comment column
+      const commentCol = operation === 'insertAfterText'
+        ? (edit.insertText || '-')
+        : (edit.comment || '-');
 
-    lines.push(`| ${blockId} | ${operation} | ${diffValue} | ${comment} |`);
+      lines.push(`| ${blockId} | ${operation} | ${findText} | ${color} | ${diffValue} | ${commentCol} |`);
+    } else {
+      const comment = edit.comment || '-';
+      lines.push(`| ${blockId} | ${operation} | ${diffValue} | ${comment} |`);
+    }
 
     // Collect text sections for later
     if (operation === 'replace' && edit.newText) {

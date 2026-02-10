@@ -16,7 +16,11 @@ import {
   replaceBlockById,
   deleteBlockById,
   insertAfterBlock,
-  addCommentToBlock
+  addCommentToBlock,
+  insertTextAfterMatch,
+  findTextPositionInBlock,
+  highlightTextInBlock,
+  addCommentToTextInBlock
 } from './blockOperations.mjs';
 
 /**
@@ -27,13 +31,16 @@ import {
 
 /**
  * @typedef {Object} Edit
- * @property {'replace'|'delete'|'comment'|'insert'} operation
- * @property {string} [blockId] - For replace, delete, comment
+ * @property {'replace'|'delete'|'comment'|'insert'|'insertAfterText'|'highlight'|'commentRange'|'commentHighlight'} operation
+ * @property {string} [blockId] - For replace, delete, comment, and text-span operations
  * @property {string} [afterBlockId] - For insert
  * @property {string} [newText] - For replace
  * @property {string} [text] - For insert
  * @property {string} [comment] - Optional comment
  * @property {boolean} [diff] - Use word-level diff for replace (default: true)
+ * @property {string} [findText] - Text to locate within block (for text-span operations)
+ * @property {string} [insertText] - Text to insert (insertAfterText only)
+ * @property {string} [color] - Highlight colour
  * @property {'paragraph'|'heading'|'listItem'} [type] - For insert
  * @property {number} [level] - Heading level for insert
  */
@@ -547,7 +554,22 @@ async function applyOneEdit(editor, edit, author, commentsStore, ir, options = {
       }
 
       case 'comment': {
-        const commentResult = await addCommentToBlock(editor, blockId, edit.comment, author);
+        let commentResult;
+
+        if (edit.findText) {
+          // New: range-anchored comment
+          commentResult = await addCommentToTextInBlock(editor, blockId, edit.findText, edit.comment, author);
+
+          if (!commentResult.success) {
+            // Fallback to full-block comment
+            console.warn(`findText "${edit.findText}" not found in block ${edit.blockId}, using full-block comment`);
+            commentResult = await addCommentToBlock(editor, blockId, edit.comment, author);
+          }
+        } else {
+          // Legacy: full-block comment (v0.2.0 behaviour)
+          commentResult = await addCommentToBlock(editor, blockId, edit.comment, author);
+        }
+
         if (commentResult.success) {
           commentsStore.push({
             id: commentResult.commentId,
@@ -556,6 +578,7 @@ async function applyOneEdit(editor, edit, author, commentsStore, ir, options = {
             author: author
           });
         }
+
         return {
           success: commentResult.success,
           error: commentResult.error,
@@ -587,6 +610,123 @@ async function applyOneEdit(editor, edit, author, commentsStore, ir, options = {
           success: insertResult.success,
           error: insertResult.error,
           details: { newBlockId: insertResult.newBlockId }
+        };
+      }
+
+      case 'insertAfterText': {
+        const insertResult = await insertTextAfterMatch(
+          editor, blockId, edit.findText, edit.insertText,
+          { trackChanges: true, author }
+        );
+
+        return {
+          success: insertResult.success,
+          error: insertResult.error,
+          details: {
+            findText: edit.findText,
+            insertText: edit.insertText,
+            insertedAt: insertResult.insertedAt
+          }
+        };
+      }
+
+      case 'highlight': {
+        const highlightResult = await highlightTextInBlock(
+          editor, blockId, edit.findText, edit.color || '#FFEB3B'
+        );
+
+        // Optional: also add comment if provided
+        if (highlightResult.success && edit.comment) {
+          const commentResult = await addCommentToTextInBlock(
+            editor, blockId, edit.findText, edit.comment, author
+          );
+          if (commentResult.success) {
+            commentsStore.push({
+              id: commentResult.commentId,
+              blockId: blockId,
+              text: edit.comment,
+              author: author
+            });
+          }
+        }
+
+        return {
+          success: highlightResult.success,
+          error: highlightResult.error,
+          details: { color: edit.color || '#FFEB3B', findText: edit.findText }
+        };
+      }
+
+      case 'commentRange': {
+        const commentResult = await addCommentToTextInBlock(
+          editor, blockId, edit.findText, edit.comment, author
+        );
+
+        if (commentResult.success) {
+          commentsStore.push({
+            id: commentResult.commentId,
+            blockId: blockId,
+            text: edit.comment,
+            author: author
+          });
+        } else {
+          // Fallback: full-block comment with warning
+          console.warn(`findText not found for commentRange on ${edit.blockId}, falling back to block comment`);
+          const fallback = await addCommentToBlock(editor, blockId, edit.comment, author);
+          if (fallback.success) {
+            commentsStore.push({
+              id: fallback.commentId,
+              blockId: blockId,
+              text: edit.comment,
+              author: author
+            });
+          }
+          return {
+            success: fallback.success,
+            error: fallback.error,
+            details: { commentId: fallback.commentId, fallback: true }
+          };
+        }
+
+        return {
+          success: commentResult.success,
+          error: commentResult.error,
+          details: { commentId: commentResult.commentId, findText: edit.findText }
+        };
+      }
+
+      case 'commentHighlight': {
+        // Step 1: Highlight
+        const highlightResult = await highlightTextInBlock(
+          editor, blockId, edit.findText, edit.color || '#FFF176'
+        );
+
+        if (!highlightResult.success) {
+          return { success: false, error: highlightResult.error };
+        }
+
+        // Step 2: Comment (on same span)
+        const commentResult = await addCommentToTextInBlock(
+          editor, blockId, edit.findText, edit.comment, author
+        );
+
+        if (commentResult.success) {
+          commentsStore.push({
+            id: commentResult.commentId,
+            blockId: blockId,
+            text: edit.comment,
+            author: author
+          });
+        }
+
+        return {
+          success: commentResult.success,
+          error: commentResult.error,
+          details: {
+            commentId: commentResult.commentId,
+            color: edit.color || '#FFF176',
+            findText: edit.findText
+          }
         };
       }
 
@@ -692,8 +832,49 @@ export function validateEditsAgainstIR(edits, ir, options = {}) {
       });
     }
 
+    // Validate new operation-specific requirements
+    if (['insertAfterText', 'highlight', 'commentRange', 'commentHighlight'].includes(edit.operation) && !edit.findText) {
+      issues.push({
+        editIndex: i,
+        type: 'missing_field',
+        blockId,
+        message: `${edit.operation} operation requires findText field`
+      });
+    }
+
+    if (edit.operation === 'insertAfterText' && !edit.insertText) {
+      issues.push({
+        editIndex: i,
+        type: 'missing_field',
+        blockId,
+        message: `insertAfterText operation requires insertText field`
+      });
+    }
+
+    if (['commentRange', 'commentHighlight'].includes(edit.operation) && !edit.comment) {
+      issues.push({
+        editIndex: i,
+        type: 'missing_field',
+        blockId,
+        message: `${edit.operation} operation requires comment field`
+      });
+    }
+
+    // Validate findText exists in block content (warning only)
+    if (edit.findText) {
+      const block = blockById.get(blockId) || blockBySeqId.get(blockId);
+      if (block && block.text && !block.text.includes(edit.findText)) {
+        warnings.push({
+          editIndex: i,
+          type: 'findtext_warning',
+          blockId,
+          message: `findText "${edit.findText.slice(0, 40)}${edit.findText.length > 40 ? '...' : ''}" not found in block text`
+        });
+      }
+    }
+
     // Validate operation is known
-    const validOperations = ['replace', 'delete', 'comment', 'insert'];
+    const validOperations = ['replace', 'delete', 'comment', 'insert', 'insertAfterText', 'highlight', 'commentRange', 'commentHighlight'];
     if (!validOperations.includes(edit.operation)) {
       issues.push({
         editIndex: i,
@@ -823,16 +1004,32 @@ function extractNodeText(node) {
 export function sortEditsForApplication(edits, ir) {
   // Build position lookup
   const positionMap = new Map();
+  const blockTextMap = new Map();
   for (const block of ir.blocks) {
     positionMap.set(block.id, block.startPos);
     positionMap.set(block.seqId, block.startPos);
+    if (block.text) {
+      blockTextMap.set(block.id, block.text);
+      blockTextMap.set(block.seqId, block.text);
+    }
   }
 
   // Sort by position descending (end of document first)
+  // Secondary sort: for same block, sort by findText position descending
   return [...edits].sort((a, b) => {
     const posA = positionMap.get(a.blockId || a.afterBlockId) || 0;
     const posB = positionMap.get(b.blockId || b.afterBlockId) || 0;
-    return posB - posA; // Descending
+    if (posB !== posA) return posB - posA; // Primary: block position descending
+
+    // Secondary: for same block, sort by findText position descending
+    if (a.findText && b.findText && a.blockId === b.blockId) {
+      const blockText = blockTextMap.get(a.blockId) || '';
+      const posAText = blockText.indexOf(a.findText);
+      const posBText = blockText.indexOf(b.findText);
+      return posBText - posAText; // Rightmost findText first
+    }
+
+    return 0;
   });
 }
 

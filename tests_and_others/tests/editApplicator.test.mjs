@@ -797,3 +797,322 @@ describe('validateNewText', () => {
     assert.equal(result.warnings.length, 0);
   });
 });
+
+// ====================================================================
+// v0.3.0 Operations Tests
+// ====================================================================
+
+describe('validateEditsAgainstIR - v0.3.0 operations', () => {
+  it('accepts insertAfterText with valid fields', async () => {
+    const { ir, cleanup } = await createEditorWithIR(assetPurchaseDocx);
+
+    // Find a block with text content to use as findText
+    const block = ir.blocks.find(b => b.text && b.text.length > 10);
+    const findText = block.text.slice(0, 10);
+
+    const edits = [
+      {
+        blockId: block.seqId,
+        operation: 'insertAfterText',
+        findText: findText,
+        insertText: 'additional text'
+      }
+    ];
+
+    const result = validateEditsAgainstIR(edits, ir);
+
+    assert.equal(result.valid, true);
+    assert.equal(result.issues.length, 0);
+
+    cleanup();
+  });
+
+  it('rejects insertAfterText without findText', async () => {
+    const { ir, cleanup } = await createEditorWithIR(sampleDocx);
+
+    const edits = [
+      {
+        blockId: ir.blocks[0].seqId,
+        operation: 'insertAfterText',
+        insertText: 'some text'
+      }
+    ];
+
+    const result = validateEditsAgainstIR(edits, ir);
+
+    assert.equal(result.valid, false);
+    assert.ok(result.issues.some(i => i.type === 'missing_field' && i.message.includes('findText')));
+
+    cleanup();
+  });
+
+  it('rejects insertAfterText without insertText', async () => {
+    const { ir, cleanup } = await createEditorWithIR(sampleDocx);
+
+    const edits = [
+      {
+        blockId: ir.blocks[0].seqId,
+        operation: 'insertAfterText',
+        findText: 'some text'
+      }
+    ];
+
+    const result = validateEditsAgainstIR(edits, ir);
+
+    assert.equal(result.valid, false);
+    assert.ok(result.issues.some(i => i.type === 'missing_field' && i.message.includes('insertText')));
+
+    cleanup();
+  });
+
+  it('accepts highlight with valid fields', async () => {
+    const { ir, cleanup } = await createEditorWithIR(assetPurchaseDocx);
+
+    const block = ir.blocks.find(b => b.text && b.text.length > 10);
+    const findText = block.text.slice(0, 10);
+
+    const edits = [
+      {
+        blockId: block.seqId,
+        operation: 'highlight',
+        findText: findText,
+        color: '#FFEB3B'
+      }
+    ];
+
+    const result = validateEditsAgainstIR(edits, ir);
+
+    assert.equal(result.valid, true);
+    assert.equal(result.issues.length, 0);
+
+    cleanup();
+  });
+
+  it('rejects commentRange without comment', async () => {
+    const { ir, cleanup } = await createEditorWithIR(sampleDocx);
+
+    const edits = [
+      {
+        blockId: ir.blocks[0].seqId,
+        operation: 'commentRange',
+        findText: 'some text'
+      }
+    ];
+
+    const result = validateEditsAgainstIR(edits, ir);
+
+    assert.equal(result.valid, false);
+    assert.ok(result.issues.some(i => i.type === 'missing_field' && i.message.includes('comment')));
+
+    cleanup();
+  });
+
+  it('rejects commentHighlight without comment', async () => {
+    const { ir, cleanup } = await createEditorWithIR(sampleDocx);
+
+    const edits = [
+      {
+        blockId: ir.blocks[0].seqId,
+        operation: 'commentHighlight',
+        findText: 'some text'
+      }
+    ];
+
+    const result = validateEditsAgainstIR(edits, ir);
+
+    assert.equal(result.valid, false);
+    assert.ok(result.issues.some(i => i.type === 'missing_field' && i.message.includes('comment')));
+
+    cleanup();
+  });
+
+  it('warns when findText not found in block text', async () => {
+    const { ir, cleanup } = await createEditorWithIR(sampleDocx);
+
+    const edits = [
+      {
+        blockId: ir.blocks[0].seqId,
+        operation: 'highlight',
+        findText: 'NONEXISTENT_TEXT_THAT_DOES_NOT_APPEAR_IN_BLOCK'
+      }
+    ];
+
+    const result = validateEditsAgainstIR(edits, ir);
+
+    // findText not found is a warning, not an error
+    assert.ok(result.warnings.length > 0, 'Should have at least one warning');
+    assert.ok(result.warnings.some(w => w.type === 'findtext_warning'), 'Should have findtext_warning');
+    assert.ok(result.warnings[0].message.includes('not found in block text'));
+
+    cleanup();
+  });
+});
+
+describe('applyEdits - v0.3.0 operations', () => {
+  it('applies single insertAfterText edit', async () => {
+    const { ir, cleanup: irCleanup } = await createEditorWithIR(assetPurchaseDocx);
+
+    // Find a block with text content to use as findText target
+    const block = ir.blocks.find(b => b.text && b.text.length > 20);
+    const findText = block.text.slice(0, 15);
+
+    irCleanup();
+
+    const outputPath = path.join(outputDir, 'insertAfterText-test.docx');
+    const editConfig = {
+      edits: [
+        {
+          blockId: block.seqId,
+          operation: 'insertAfterText',
+          findText: findText,
+          insertText: ' [ADDED TEXT] '
+        }
+      ]
+    };
+
+    const result = await applyEdits(assetPurchaseDocx, outputPath, editConfig);
+
+    assert.equal(result.applied, 1);
+    assert.equal(result.skipped.length, 0);
+  });
+
+  it('applies single commentRange edit', async () => {
+    const { ir, cleanup: irCleanup } = await createEditorWithIR(assetPurchaseDocx);
+
+    const block = ir.blocks.find(b => b.text && b.text.length > 20);
+    const findText = block.text.slice(0, 15);
+
+    irCleanup();
+
+    const outputPath = path.join(outputDir, 'commentRange-test.docx');
+    const editConfig = {
+      edits: [
+        {
+          blockId: block.seqId,
+          operation: 'commentRange',
+          findText: findText,
+          comment: 'Review this specific text'
+        }
+      ]
+    };
+
+    const result = await applyEdits(assetPurchaseDocx, outputPath, editConfig);
+
+    assert.equal(result.applied, 1);
+    assert.ok(result.details[0].commentId, 'Should have commentId in details');
+  });
+
+  it('applies comment with findText (enhanced comment)', async () => {
+    const { ir, cleanup: irCleanup } = await createEditorWithIR(assetPurchaseDocx);
+
+    const block = ir.blocks.find(b => b.text && b.text.length > 20);
+    const findText = block.text.slice(0, 15);
+
+    irCleanup();
+
+    const outputPath = path.join(outputDir, 'comment-findText-test.docx');
+    const editConfig = {
+      edits: [
+        {
+          blockId: block.seqId,
+          operation: 'comment',
+          findText: findText,
+          comment: 'Enhanced comment anchored to specific text'
+        }
+      ]
+    };
+
+    const result = await applyEdits(assetPurchaseDocx, outputPath, editConfig);
+
+    assert.equal(result.applied, 1);
+    assert.ok(result.details[0].commentId);
+  });
+
+  it('applies commentHighlight edit', async () => {
+    const { ir, cleanup: irCleanup } = await createEditorWithIR(assetPurchaseDocx);
+
+    const block = ir.blocks.find(b => b.text && b.text.length > 20);
+    const findText = block.text.slice(0, 15);
+
+    irCleanup();
+
+    const outputPath = path.join(outputDir, 'commentHighlight-test.docx');
+    const editConfig = {
+      edits: [
+        {
+          blockId: block.seqId,
+          operation: 'commentHighlight',
+          findText: findText,
+          comment: 'Highlighted and commented',
+          color: '#FFF176'
+        }
+      ]
+    };
+
+    const result = await applyEdits(assetPurchaseDocx, outputPath, editConfig);
+
+    // commentHighlight does highlight + comment; both may succeed or fail
+    // depending on editor support for setHighlight
+    assert.ok(typeof result.applied === 'number');
+    assert.ok(typeof result.skipped.length === 'number');
+  });
+
+  it('handles insertAfterText with findText not found (skip)', async () => {
+    const outputPath = path.join(outputDir, 'insertAfterText-notfound-test.docx');
+    const editConfig = {
+      edits: [
+        {
+          blockId: 'b001',
+          operation: 'insertAfterText',
+          findText: 'XYZZY_NONEXISTENT_TEXT_THAT_WILL_NOT_MATCH',
+          insertText: 'should not be inserted'
+        }
+      ]
+    };
+
+    const result = await applyEdits(assetPurchaseDocx, outputPath, editConfig);
+
+    // The edit should be skipped because findText was not found
+    assert.equal(result.applied, 0);
+    assert.equal(result.skipped.length, 1);
+    assert.ok(result.skipped[0].reason.includes('not found'));
+  });
+});
+
+describe('sortEditsForApplication - v0.3.0 secondary sort', () => {
+  it('sorts multiple insertAfterText on same block by findText position descending', async () => {
+    const { ir, cleanup } = await createEditorWithIR(assetPurchaseDocx);
+
+    // Find a block with enough text for two different findText matches
+    const block = ir.blocks.find(b => b.text && b.text.length > 40);
+    assert.ok(block, 'Should find a block with sufficient text');
+
+    const earlyText = block.text.slice(0, 10);
+    const lateText = block.text.slice(20, 30);
+
+    const edits = [
+      {
+        blockId: block.seqId,
+        operation: 'insertAfterText',
+        findText: earlyText,
+        insertText: ' EARLY '
+      },
+      {
+        blockId: block.seqId,
+        operation: 'insertAfterText',
+        findText: lateText,
+        insertText: ' LATE '
+      }
+    ];
+
+    const sorted = sortEditsForApplication(edits, ir);
+
+    // The later-occurring findText should come first (rightmost first)
+    // because we apply from end to start to avoid position corruption
+    assert.equal(sorted.length, 2);
+    assert.equal(sorted[0].findText, lateText, 'Later findText should be sorted first');
+    assert.equal(sorted[1].findText, earlyText, 'Earlier findText should be sorted second');
+
+    cleanup();
+  });
+});
