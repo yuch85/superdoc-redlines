@@ -101,6 +101,20 @@ import {
 const DEFAULT_AUTHOR = { name: 'AI Assistant', email: 'ai@example.com' };
 
 /**
+ * Test whether a string looks like a UUID (any version).
+ * @param {string} id
+ * @returns {boolean}
+ */
+export function looksLikeUuid(id) {
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
+}
+
+/** Actionable guidance appended to error messages when a UUID is used */
+const UUID_GUIDANCE =
+  'UUIDs are regenerated on each document load and are not portable across CLI commands. ' +
+  'Use seqId (e.g. "b001") from the extract output instead.';
+
+/**
  * Detect if a block is likely a TOC (Table of Contents) entry.
  * TOC blocks have deeply nested link structures that cause ProseMirror
  * schema validation failures when track changes are applied.
@@ -481,10 +495,12 @@ async function applyOneEdit(editor, edit, author, commentsStore, ir, options = {
 
   // Check resolution succeeded
   if (edit.blockId && !blockId) {
-    return { success: false, error: `Block not found: ${edit.blockId}` };
+    const hint = looksLikeUuid(edit.blockId) ? ` ${UUID_GUIDANCE}` : '';
+    return { success: false, error: `Block not found: ${edit.blockId}.${hint}` };
   }
   if (edit.afterBlockId && !afterBlockId) {
-    return { success: false, error: `Block not found: ${edit.afterBlockId}` };
+    const hint = looksLikeUuid(edit.afterBlockId) ? ` ${UUID_GUIDANCE}` : '';
+    return { success: false, error: `Block not found: ${edit.afterBlockId}.${hint}` };
   }
 
   // Pre-check for TOC blocks on replace operations (they fail with cryptic ProseMirror errors)
@@ -795,11 +811,14 @@ export function validateEditsAgainstIR(edits, ir, options = {}) {
 
     // Check if block exists
     if (!blockIdSet.has(blockId) && !seqIdSet.has(blockId)) {
+      const guidance = looksLikeUuid(blockId)
+        ? `Block ${blockId} not found in document. ${UUID_GUIDANCE}`
+        : `Block ${blockId} not found in document`;
       issues.push({
         editIndex: i,
         type: 'missing_block',
         blockId,
-        message: `Block ${blockId} not found in document`
+        message: guidance
       });
       continue;
     }

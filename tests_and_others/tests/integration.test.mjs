@@ -472,6 +472,29 @@ describe('Error Handling', () => {
   });
 });
 
+describe('UUID vs seqId Regression', () => {
+  before(async () => {
+    await ensureOutputDir();
+  });
+
+  it('full extract → apply round trip with seqId succeeds (regression)', async () => {
+    const ir = await extractDocumentIR(SAMPLE_DOC);
+    const editConfig = {
+      version: '0.2.0',
+      edits: [
+        { blockId: ir.blocks[0].seqId, operation: 'comment', comment: 'Regression check' }
+      ]
+    };
+    const validation = await validateEdits(SAMPLE_DOC, editConfig);
+    assert.strictEqual(validation.valid, true);
+
+    const outputDoc = join(OUTPUT_DIR, 'regression-seqid.docx');
+    const result = await applyEdits(SAMPLE_DOC, outputDoc, editConfig);
+    assert.strictEqual(result.applied, 1);
+    assert.strictEqual(result.skipped.length, 0);
+  });
+});
+
 describe('ID Format Compatibility', () => {
   it('seqIds are stable across document loads', async () => {
     // Extract IR twice to verify seqIds are deterministic

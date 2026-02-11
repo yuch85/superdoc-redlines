@@ -17,7 +17,8 @@ import {
   loadDocumentForEditing,
   exportDocument,
   isTocBlock,
-  detectTocStructure
+  detectTocStructure,
+  looksLikeUuid
 } from '../../src/editApplicator.mjs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -1114,5 +1115,82 @@ describe('sortEditsForApplication - v0.3.0 secondary sort', () => {
     assert.equal(sorted[1].findText, earlyText, 'Earlier findText should be sorted second');
 
     cleanup();
+  });
+});
+
+// ====================================================================
+// UUID vs seqId Guidance Tests (sgcite debug handoff)
+// ====================================================================
+
+describe('looksLikeUuid', () => {
+  it('detects canonical UUIDs', () => {
+    assert.equal(looksLikeUuid('cadc0dcc-4e97-4cc2-a51d-cc811ba4832d'), true);
+    assert.equal(looksLikeUuid('b7a08a59-4259-402c-9e8f-69b8afc2c511'), true);
+  });
+
+  it('rejects seqIds and garbage', () => {
+    assert.equal(looksLikeUuid('b001'), false);
+    assert.equal(looksLikeUuid('b999'), false);
+    assert.equal(looksLikeUuid('not-a-uuid'), false);
+    assert.equal(looksLikeUuid(''), false);
+  });
+});
+
+describe('UUID guidance in validation', () => {
+  it('produces actionable guidance when UUID blockId used in validation', async () => {
+    // Extract IR (captures a UUID that will NOT survive into next load)
+    const ir1 = await extractDocumentIR(sampleDocx);
+    const staleUuid = ir1.blocks[0].id;
+
+    // Validate in a fresh load (UUID will be different)
+    const editConfig = {
+      edits: [{ blockId: staleUuid, operation: 'comment', comment: 'test' }]
+    };
+    const result = await validateEdits(sampleDocx, editConfig);
+
+    assert.equal(result.valid, false);
+    assert.equal(result.issues.length, 1);
+    assert.equal(result.issues[0].type, 'missing_block');
+    assert.ok(result.issues[0].message.includes('seqId'),
+      'Error should guide user to use seqId');
+    assert.ok(result.issues[0].message.includes('not portable'),
+      'Error should explain UUID volatility');
+  });
+
+  it('seqId validation still succeeds after UUID guidance changes', async () => {
+    const editConfig = {
+      edits: [{ blockId: 'b001', operation: 'comment', comment: 'test' }]
+    };
+    const result = await validateEdits(sampleDocx, editConfig);
+    assert.equal(result.valid, true);
+    assert.equal(result.issues.length, 0);
+  });
+});
+
+describe('UUID guidance in apply', () => {
+  it('produces actionable guidance when UUID blockId used in apply', async () => {
+    const ir1 = await extractDocumentIR(sampleDocx);
+    const staleUuid = ir1.blocks[0].id;
+    const outputPath = path.join(outputDir, 'uuid-guidance-test.docx');
+
+    const editConfig = {
+      edits: [{ blockId: staleUuid, operation: 'comment', comment: 'test' }]
+    };
+    const result = await applyEdits(sampleDocx, outputPath, editConfig);
+
+    assert.equal(result.applied, 0);
+    assert.equal(result.skipped.length, 1);
+    assert.ok(result.skipped[0].reason.includes('seqId'),
+      'Skip reason should guide user to use seqId');
+  });
+
+  it('seqId apply still succeeds after UUID guidance changes', async () => {
+    const outputPath = path.join(outputDir, 'seqid-regression-test.docx');
+    const editConfig = {
+      edits: [{ blockId: 'b001', operation: 'comment', comment: 'test' }]
+    };
+    const result = await applyEdits(sampleDocx, outputPath, editConfig);
+    assert.equal(result.applied, 1);
+    assert.equal(result.skipped.length, 0);
   });
 });

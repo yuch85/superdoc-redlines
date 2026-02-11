@@ -158,7 +158,9 @@ Rewriting entire clause with new structure?
 
 ```
 "Block ID not found":
-  → Verify blockId exists in extracted IR
+  → If your blockId looks like a UUID (e.g., "550e8400-e29b-..."):
+    UUIDs are not portable across CLI commands. Use seqId (bNNN) instead.
+  → Verify blockId exists in extracted IR (use seqId column)
   → Check for typos (b001 vs B001 - case sensitive)
   → Re-extract IR if document changed
 
@@ -195,6 +197,8 @@ Rewriting entire clause with new structure?
 5. **Version is required** — Always include `"version": "0.2.0"` in the root object
 
 6. **Insert uses `afterBlockId`** — NOT `blockId`. The new block is inserted AFTER the specified block.
+
+7. **Use `seqId` in edit files** — Do not use UUIDs from extract output. UUIDs are regenerated on each document load and will cause `"Block not found"` errors in apply/validate. Always use `seqId` format (`b001`, `b025`, etc.).
 
 </critical_constraints>
 
@@ -402,6 +406,8 @@ Both formats are accepted:
 | **UUID** | `550e8400-e29b-41d4-...` | Internal SuperDoc format |
 
 SeqIds are derived from document order and are consistent across extractions of the same document.
+
+**Important:** UUIDs are session-volatile — they change every time the document is loaded. For CLI workflows (`extract` → `apply`), always use `seqId`. UUIDs only work within a single programmatic session (same editor instance).
 
 ---
 

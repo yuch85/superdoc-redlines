@@ -394,8 +394,8 @@ These operations anchor to specific text within a block using `findText` for sub
 
 | Field | Type | Description |
 |-------|------|-------------|
-| `blockId` | string | Target block (UUID or seqId like `"b001"`) |
-| `afterBlockId` | string | Insert position (UUID or seqId) |
+| `blockId` | string | Target block (**use seqId like `"b001"`**; UUIDs from extract are session-volatile and will fail in apply/validate) |
+| `afterBlockId` | string | Insert position (**use seqId like `"b001"`**; UUIDs are not portable across CLI commands) |
 | `newText` | string | Replacement text for `replace` operation |
 | `text` | string | New block text for `insert` operation |
 | `comment` | string | Comment text to attach |
@@ -610,10 +610,10 @@ Each block has two IDs:
 
 | ID Type | Format | Purpose |
 |---------|--------|---------|
-| **UUID** | `550e8400-e29b-41d4-a716-446655440000` | SuperDoc internal ID, changes on reload |
-| **seqId** | `b001`, `b002`, `b003` | Stable sequential ID for LLM reference |
+| **UUID** | `550e8400-e29b-41d4-a716-446655440000` | SuperDoc internal ID, **regenerated on each document load — not portable across CLI commands** |
+| **seqId** | `b001`, `b002`, `b003` | Stable sequential ID for LLM reference — **use this in edit files** |
 
-Both formats are accepted in edits. SeqIds are recommended for LLM use.
+Both formats are accepted in edits. **SeqIds are strongly recommended.** UUIDs are session-volatile and will fail when used across separate CLI invocations (e.g., extract → apply).
 
 ---
 
@@ -900,6 +900,14 @@ Output includes:
 **Cause:** Track changes preserves deleted text in the document structure; IR extraction captures all text content.
 
 **This is expected behavior.** To get only the final text, open the DOCX in Word, accept all changes, save, then re-extract.
+
+### UUID Block IDs Not Portable Across CLI Commands
+
+**Issue:** Using a UUID from `extract` output as a `blockId` in an edit file causes `"Block not found"` errors during `apply` or `validate`.
+
+**Cause:** SuperDoc regenerates UUIDs on each document load. The UUID from one `extract` session will not exist in a later `apply` session.
+
+**Solution:** Always use `seqId` values (e.g., `b001`, `b025`) in edit files. SeqIds are derived from document order and are stable across CLI invocations.
 
 ### TOC Block Editing Failures
 
