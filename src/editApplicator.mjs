@@ -735,22 +735,32 @@ async function applyOneEdit(editor, edit, author, commentsStore, ir, options = {
       }
 
       case 'commentHighlight': {
-        // Step 1: Highlight
+        // Step 1: Attempt highlight (non-fatal)
         const highlightResult = await highlightTextInBlock(
           editor, blockId, edit.findText, edit.color || '#FFF176'
         );
-
         if (!highlightResult.success) {
-          return { success: false, error: highlightResult.error };
+          console.warn(`Highlight failed for ${edit.blockId}, falling back to comment-only: ${highlightResult.error}`);
         }
 
-        // Step 2: Comment (on same span)
+        // Step 2: Comment (always attempt, even if highlight failed)
         const commentResult = await addCommentToTextInBlock(
           editor, blockId, edit.findText, edit.comment, author
         );
-
         if (commentResult.success) {
           commentsStore.push(buildCommentEntry(commentResult.commentId, edit.comment, author));
+        } else {
+          // Fallback: block-level comment
+          console.warn(`findText not found for commentHighlight on ${edit.blockId}, falling back to block comment`);
+          const fallback = await addCommentToBlock(editor, blockId, edit.comment, author);
+          if (fallback.success) {
+            commentsStore.push(buildCommentEntry(fallback.commentId, edit.comment, author));
+          }
+          return {
+            success: fallback.success,
+            error: fallback.error,
+            details: { commentId: fallback.commentId, fallback: true }
+          };
         }
 
         return {
