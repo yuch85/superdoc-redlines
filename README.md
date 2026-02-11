@@ -909,6 +909,14 @@ Output includes:
 
 **Solution:** Always use `seqId` values (e.g., `b001`, `b025`) in edit files. SeqIds are derived from document order and are stable across CLI invocations.
 
+### Comment Bubbles Not Appearing in Output DOCX (Fixed)
+
+**Issue:** Comment edits (`comment`, `commentRange`, `commentHighlight`) were applied successfully (correct count reported) but the output DOCX had empty comment bodies and missing `commentRangeStart`/`commentRangeEnd` anchors — so no visible comment bubbles appeared in Word or LibreOffice.
+
+**Cause:** The internal `commentsStore` was using a flat format (`{ id, blockId, text, author }`) that didn't match SuperDoc's expected export schema. SuperDoc's `exportDocx()` requires `{ commentId, creatorName, creatorEmail, createdTime, commentJSON }` where `commentJSON` is an array of ProseMirror paragraph nodes.
+
+**Fix:** The `buildCommentEntry()` helper in `editApplicator.mjs` now transforms comment data to the SuperDoc-compatible format. All 7 `commentsStore.push()` sites have been updated. See `buildCommentEntry()` for the transformation logic.
+
 ### TOC Block Editing Failures
 
 **Issue:** Editing Table of Contents blocks may fail with errors like:

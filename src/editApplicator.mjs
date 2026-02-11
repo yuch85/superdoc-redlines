@@ -101,6 +101,42 @@ import {
 const DEFAULT_AUTHOR = { name: 'AI Assistant', email: 'ai@example.com' };
 
 /**
+ * Build a comment entry in the format expected by SuperDoc's exportDocx().
+ *
+ * SuperDoc requires:
+ * - commentId: must match the commentMark.attrs.commentId in the ProseMirror doc
+ * - creatorName / creatorEmail: flat strings (not an author object)
+ * - createdTime: Unix milliseconds for the w:date attribute
+ * - commentJSON: ProseMirror node array representing the comment body
+ *
+ * Without this format, exported DOCX files will have empty comment bodies
+ * and missing commentRangeStart/End anchors.
+ *
+ * @param {string} commentId - The comment ID (must match commentMark.attrs.commentId)
+ * @param {string} commentText - Plain-text comment body
+ * @param {Author|string|null|undefined} author - Author info
+ * @returns {Object} SuperDoc-compatible comment entry
+ */
+export function buildCommentEntry(commentId, commentText, author) {
+  // Build ProseMirror paragraph nodes — split on newlines for multi-line comments
+  const lines = (commentText || '').split('\n');
+  const commentJSON = lines.map(line => ({
+    type: 'paragraph',
+    content: [
+      { type: 'text', text: line || ' ' }  // empty lines get a space to avoid empty paragraphs
+    ]
+  }));
+
+  return {
+    commentId,
+    creatorName: typeof author === 'string' ? author : (author?.name || 'AI Assistant'),
+    creatorEmail: typeof author === 'string' ? '' : (author?.email || ''),
+    createdTime: Date.now(),
+    commentJSON
+  };
+}
+
+/**
  * Test whether a string looks like a UUID (any version).
  * @param {string} id
  * @returns {boolean}
@@ -552,12 +588,7 @@ async function applyOneEdit(editor, edit, author, commentsStore, ir, options = {
           try {
             const commentResult = await addCommentToBlock(editor, blockId, edit.comment, author);
             if (commentResult.success) {
-              commentsStore.push({
-                id: commentResult.commentId,
-                blockId: blockId,
-                text: edit.comment,
-                author: author
-              });
+              commentsStore.push(buildCommentEntry(commentResult.commentId, edit.comment, author));
             }
           } catch (commentError) {
             // Comment failed but replace succeeded - don't fail the entire edit
@@ -604,12 +635,7 @@ async function applyOneEdit(editor, edit, author, commentsStore, ir, options = {
         }
 
         if (commentResult.success) {
-          commentsStore.push({
-            id: commentResult.commentId,
-            blockId: blockId,
-            text: edit.comment,
-            author: author
-          });
+          commentsStore.push(buildCommentEntry(commentResult.commentId, edit.comment, author));
         }
 
         return {
@@ -630,12 +656,7 @@ async function applyOneEdit(editor, edit, author, commentsStore, ir, options = {
         if (insertResult.success && edit.comment) {
           const commentResult = await addCommentToBlock(editor, insertResult.newBlockId, edit.comment, author);
           if (commentResult.success) {
-            commentsStore.push({
-              id: commentResult.commentId,
-              blockId: insertResult.newBlockId,
-              text: edit.comment,
-              author: author
-            });
+            commentsStore.push(buildCommentEntry(commentResult.commentId, edit.comment, author));
           }
         }
 
@@ -674,12 +695,7 @@ async function applyOneEdit(editor, edit, author, commentsStore, ir, options = {
             editor, blockId, edit.findText, edit.comment, author
           );
           if (commentResult.success) {
-            commentsStore.push({
-              id: commentResult.commentId,
-              blockId: blockId,
-              text: edit.comment,
-              author: author
-            });
+            commentsStore.push(buildCommentEntry(commentResult.commentId, edit.comment, author));
           }
         }
 
@@ -696,23 +712,13 @@ async function applyOneEdit(editor, edit, author, commentsStore, ir, options = {
         );
 
         if (commentResult.success) {
-          commentsStore.push({
-            id: commentResult.commentId,
-            blockId: blockId,
-            text: edit.comment,
-            author: author
-          });
+          commentsStore.push(buildCommentEntry(commentResult.commentId, edit.comment, author));
         } else {
           // Fallback: full-block comment with warning
           console.warn(`findText not found for commentRange on ${edit.blockId}, falling back to block comment`);
           const fallback = await addCommentToBlock(editor, blockId, edit.comment, author);
           if (fallback.success) {
-            commentsStore.push({
-              id: fallback.commentId,
-              blockId: blockId,
-              text: edit.comment,
-              author: author
-            });
+            commentsStore.push(buildCommentEntry(fallback.commentId, edit.comment, author));
           }
           return {
             success: fallback.success,
@@ -744,12 +750,7 @@ async function applyOneEdit(editor, edit, author, commentsStore, ir, options = {
         );
 
         if (commentResult.success) {
-          commentsStore.push({
-            id: commentResult.commentId,
-            blockId: blockId,
-            text: edit.comment,
-            author: author
-          });
+          commentsStore.push(buildCommentEntry(commentResult.commentId, edit.comment, author));
         }
 
         return {
