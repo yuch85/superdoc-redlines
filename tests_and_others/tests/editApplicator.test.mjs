@@ -20,7 +20,8 @@ import {
   detectTocStructure,
   looksLikeUuid,
   buildCommentEntry,
-  linkifyLine
+  linkifyLine,
+  injectCommentHyperlinkRels
 } from '../../src/editApplicator.mjs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -1552,5 +1553,171 @@ describe('DOCX comment forensics - comment edits produce SuperDoc-compatible out
     // Verify comment body contains actual text (not empty self-closing tags)
     assert.ok(commentsXml.includes('Forensic test comment body'),
       'comments.xml must contain the comment text');
+  });
+});
+
+describe('injectCommentHyperlinkRels', () => {
+  it('injects comments.xml.rels when hyperlinks exist in comments', async () => {
+    const { default: AdmZip } = await import('adm-zip');
+    const zip = new AdmZip();
+    const commentsXml = `<?xml version="1.0" encoding="UTF-8"?>
+      <w:comments xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"
+                  xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">
+        <w:comment w:id="0">
+          <w:p><w:r><w:t>Some text</w:t></w:r></w:p>
+          <w:p>
+            <w:r><w:t xml:space="preserve">Source: </w:t></w:r>
+            <w:hyperlink r:id="rId001">
+              <w:r><w:t>https://www.elitigation.sg/gdviewer/s/2007_SGCA_37</w:t></w:r>
+            </w:hyperlink>
+          </w:p>
+        </w:comment>
+      </w:comments>`;
+    zip.addFile('word/comments.xml', Buffer.from(commentsXml, 'utf-8'));
+
+    const result = await injectCommentHyperlinkRels(zip.toBuffer());
+    const resultZip = new AdmZip(result);
+
+    const relsEntry = resultZip.getEntry('word/_rels/comments.xml.rels');
+    assert.ok(relsEntry, 'comments.xml.rels should be created');
+
+    const relsXml = relsEntry.getData().toString('utf-8');
+    assert.ok(relsXml.includes('rId001'), 'Should contain the rId');
+    assert.ok(relsXml.includes('https://www.elitigation.sg/gdviewer/s/2007_SGCA_37'),
+      'Should contain the target URL');
+    assert.ok(relsXml.includes('TargetMode="External"'), 'Should be external link');
+    assert.ok(relsXml.includes('relationships/hyperlink'), 'Should have hyperlink type');
+  });
+
+  it('is a no-op when comments.xml has no hyperlinks', async () => {
+    const { default: AdmZip } = await import('adm-zip');
+    const zip = new AdmZip();
+    const commentsXml = `<?xml version="1.0" encoding="UTF-8"?>
+      <w:comments xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
+        <w:comment w:id="0">
+          <w:p><w:r><w:t>Plain comment, no links</w:t></w:r></w:p>
+        </w:comment>
+      </w:comments>`;
+    zip.addFile('word/comments.xml', Buffer.from(commentsXml, 'utf-8'));
+
+    const result = await injectCommentHyperlinkRels(zip.toBuffer());
+    const resultZip = new AdmZip(result);
+    assert.strictEqual(resultZip.getEntry('word/_rels/comments.xml.rels'), null,
+      'Should not create rels file when no hyperlinks');
+  });
+
+  it('is a no-op when comments.xml.rels already exists', async () => {
+    const { default: AdmZip } = await import('adm-zip');
+    const zip = new AdmZip();
+    const commentsXml = `<?xml version="1.0" encoding="UTF-8"?>
+      <w:comments xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"
+                  xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">
+        <w:comment w:id="0">
+          <w:p><w:hyperlink r:id="rId001"><w:r><w:t>https://example.com</w:t></w:r></w:hyperlink></w:p>
+        </w:comment>
+      </w:comments>`;
+    const existingRels = `<?xml version="1.0" encoding="UTF-8"?>
+      <Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+        <Relationship Id="rId001" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/hyperlink" Target="https://example.com" TargetMode="External"/>
+      </Relationships>`;
+    zip.addFile('word/comments.xml', Buffer.from(commentsXml, 'utf-8'));
+    zip.addFile('word/_rels/comments.xml.rels', Buffer.from(existingRels, 'utf-8'));
+
+    const original = zip.toBuffer();
+    const result = await injectCommentHyperlinkRels(original);
+
+    const resultZip = new AdmZip(result);
+    const relsContent = resultZip.getEntry('word/_rels/comments.xml.rels').getData().toString('utf-8');
+    assert.ok(relsContent.includes('rId001'), 'Original rels should be preserved');
+  });
+
+  it('is a no-op when no comments.xml exists', async () => {
+    const { default: AdmZip } = await import('adm-zip');
+    const zip = new AdmZip();
+    zip.addFile('word/document.xml', Buffer.from('<w:document/>', 'utf-8'));
+
+    const result = await injectCommentHyperlinkRels(zip.toBuffer());
+    const resultZip = new AdmZip(result);
+    assert.strictEqual(resultZip.getEntry('word/_rels/comments.xml.rels'), null);
+  });
+
+  it('handles multiple hyperlinks across multiple comments', async () => {
+    const { default: AdmZip } = await import('adm-zip');
+    const zip = new AdmZip();
+    const commentsXml = `<?xml version="1.0" encoding="UTF-8"?>
+      <w:comments xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"
+                  xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">
+        <w:comment w:id="0">
+          <w:p><w:hyperlink r:id="rId001"><w:r><w:t>https://a.com/1</w:t></w:r></w:hyperlink></w:p>
+        </w:comment>
+        <w:comment w:id="1">
+          <w:p><w:hyperlink r:id="rId002"><w:r><w:t>https://b.com/2</w:t></w:r></w:hyperlink></w:p>
+        </w:comment>
+      </w:comments>`;
+    zip.addFile('word/comments.xml', Buffer.from(commentsXml, 'utf-8'));
+
+    const result = await injectCommentHyperlinkRels(zip.toBuffer());
+    const resultZip = new AdmZip(result);
+    const relsXml = resultZip.getEntry('word/_rels/comments.xml.rels').getData().toString('utf-8');
+
+    assert.ok(relsXml.includes('rId001'), 'Should contain first rId');
+    assert.ok(relsXml.includes('rId002'), 'Should contain second rId');
+    assert.ok(relsXml.includes('https://a.com/1'), 'Should contain first URL');
+    assert.ok(relsXml.includes('https://b.com/2'), 'Should contain second URL');
+  });
+
+  it('handles XML-special characters in URLs', async () => {
+    const { default: AdmZip } = await import('adm-zip');
+    const zip = new AdmZip();
+    const commentsXml = `<?xml version="1.0" encoding="UTF-8"?>
+      <w:comments xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"
+                  xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">
+        <w:comment w:id="0">
+          <w:p><w:hyperlink r:id="rId001"><w:r><w:t>https://example.com/path?a=1&amp;b=2</w:t></w:r></w:hyperlink></w:p>
+        </w:comment>
+      </w:comments>`;
+    zip.addFile('word/comments.xml', Buffer.from(commentsXml, 'utf-8'));
+
+    const result = await injectCommentHyperlinkRels(zip.toBuffer());
+    const resultZip = new AdmZip(result);
+    const relsXml = resultZip.getEntry('word/_rels/comments.xml.rels').getData().toString('utf-8');
+    // Must be single-escaped (&amp;), NOT double-escaped (&amp;amp;).
+    // The function decodes XML entities from the raw comments.xml bytes before
+    // re-encoding for the .rels file, so the output should be correct OOXML.
+    assert.ok(relsXml.includes('https://example.com/path?a=1&amp;b=2'),
+      'URL with special chars should be properly escaped (single &amp;, not double)');
+    assert.ok(!relsXml.includes('&amp;amp;'),
+      'Must NOT double-escape XML entities');
+  });
+});
+
+describe('DOCX comment hyperlink forensics (A022)', () => {
+  it('exported DOCX contains comments.xml.rels with hyperlink relationships', async () => {
+    const outputPath = path.join(outputDir, 'hyperlink-rels-test.docx');
+    const editConfig = {
+      version: '0.3.0',
+      author: { name: 'Test', email: 'test@test.com' },
+      edits: [{
+        blockId: 'b001',
+        operation: 'comment',
+        comment: '\u2705 VERIFIED: Citation checks passed.\nSource: https://www.elitigation.sg/gdviewer/s/2007_SGCA_37'
+      }]
+    };
+
+    const result = await applyEdits(sampleDocx, outputPath, editConfig);
+    assert.ok(result.applied >= 1, 'Comment edit should apply');
+
+    // Inspect the DOCX zip for comments.xml.rels
+    const { default: AdmZip } = await import('adm-zip');
+    const zip = new AdmZip(outputPath);
+
+    const relsEntry = zip.getEntry('word/_rels/comments.xml.rels');
+    assert.ok(relsEntry, 'DOCX must contain word/_rels/comments.xml.rels');
+
+    const relsXml = relsEntry.getData().toString('utf-8');
+    assert.ok(relsXml.includes('https://www.elitigation.sg/gdviewer/s/2007_SGCA_37'),
+      'Rels file must contain the eLitigation URL');
+    assert.ok(relsXml.includes('TargetMode="External"'),
+      'Hyperlink must be external');
   });
 });

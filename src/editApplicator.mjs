@@ -166,6 +166,113 @@ export function linkifyLine(line) {
 }
 
 /**
+ * Post-process a DOCX buffer to inject word/_rels/comments.xml.rels
+ * for any hyperlinks found in word/comments.xml.
+ *
+ * SuperDoc's exportDocx() generates <w:hyperlink r:id="..."> elements in
+ * comment bodies but does not create the corresponding relationship file.
+ * Without it, Word displays the link text but it is not clickable.
+ *
+ * This function is idempotent: if comments.xml.rels already exists or
+ * there are no hyperlinks in comments, the buffer is returned unchanged.
+ *
+ * @param {Buffer|ArrayBuffer} docxBuffer - The exported DOCX buffer.
+ * @returns {Promise<Buffer>} - The (possibly patched) DOCX buffer.
+ */
+export async function injectCommentHyperlinkRels(docxBuffer) {
+  const { default: AdmZip } = await import('adm-zip');
+  const zip = new AdmZip(Buffer.from(docxBuffer));
+
+  // Check if comments.xml exists
+  const commentsEntry = zip.getEntry('word/comments.xml');
+  if (!commentsEntry) return Buffer.from(docxBuffer);
+
+  // Check if rels file already exists (SuperDoc fixed it, or second run)
+  const existingRels = zip.getEntry('word/_rels/comments.xml.rels');
+  if (existingRels) return Buffer.from(docxBuffer);
+
+  // Parse hyperlinks from comments.xml
+  const commentsXml = commentsEntry.getData().toString('utf-8');
+  const hyperlinkRe = /<w:hyperlink\s[^>]*r:id="([^"]+)"[^>]*>([\s\S]*?)<\/w:hyperlink>/g;
+  const textRe = /<w:t[^>]*>([^<]+)<\/w:t>/;
+
+  const relationships = [];
+  for (const match of commentsXml.matchAll(hyperlinkRe)) {
+    const rId = match[1];
+    const inner = match[2];
+    const textMatch = inner.match(textRe);
+    if (textMatch) {
+      // Decode XML entities since we're reading raw XML bytes, not parsed DOM text.
+      // Without this, &amp; in URLs would be double-escaped to &amp;amp; in the .rels file.
+      const url = decodeXmlEntities(textMatch[1].trim());
+      // Only add if it looks like a URL (safety check)
+      if (url.startsWith('http://') || url.startsWith('https://')) {
+        relationships.push({ rId, url });
+      }
+    }
+  }
+
+  if (relationships.length === 0) return Buffer.from(docxBuffer);
+
+  // Deduplicate by rId (shouldn't happen, but be safe)
+  const seen = new Set();
+  const uniqueRels = relationships.filter(r => {
+    if (seen.has(r.rId)) return false;
+    seen.add(r.rId);
+    return true;
+  });
+
+  // Build the .rels XML
+  const relEntries = uniqueRels.map(r =>
+    `  <Relationship Id="${escapeXmlAttr(r.rId)}" ` +
+    `Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/hyperlink" ` +
+    `Target="${escapeXmlAttr(r.url)}" TargetMode="External"/>`
+  ).join('\n');
+
+  const relsXml =
+    `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n` +
+    `<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">\n` +
+    `${relEntries}\n` +
+    `</Relationships>`;
+
+  // Inject into zip
+  zip.addFile('word/_rels/comments.xml.rels', Buffer.from(relsXml, 'utf-8'));
+
+  return zip.toBuffer();
+}
+
+/**
+ * Decode common XML entities back to raw characters.
+ * Used when extracting text from raw XML (adm-zip returns raw bytes,
+ * not DOM-parsed text), so entities like &amp; need decoding before
+ * we re-encode them via escapeXmlAttr().
+ * @param {string} str
+ * @returns {string}
+ */
+function decodeXmlEntities(str) {
+  return str
+    .replace(/&apos;/g, "'")
+    .replace(/&quot;/g, '"')
+    .replace(/&gt;/g, '>')
+    .replace(/&lt;/g, '<')
+    .replace(/&amp;/g, '&');  // Must be last to avoid double-decode
+}
+
+/**
+ * Escape special characters for XML attribute values.
+ * @param {string} str
+ * @returns {string}
+ */
+function escapeXmlAttr(str) {
+  return str
+    .replace(/&/g, '&amp;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&apos;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
+}
+
+/**
  * Build a comment entry in the format expected by SuperDoc's exportDocx().
  *
  * SuperDoc requires:
@@ -546,6 +653,14 @@ export async function applyEdits(inputPath, outputPath, editConfig, options = {}
     // Always restore console.warn
     console.warn = originalWarn;
   }
+
+  // Post-process: inject comments.xml.rels for hyperlinks in comment bodies.
+  // SuperDoc generates <w:hyperlink r:id="..."> in comments.xml but does not
+  // create the corresponding .rels file, so links are not clickable in Word.
+  if (results.comments.length > 0) {
+    exportedBuffer = await injectCommentHyperlinkRels(exportedBuffer);
+  }
+
   await writeFile(outputPath, Buffer.from(exportedBuffer));
 
   // Step 7: Cleanup
@@ -1208,6 +1323,12 @@ export async function exportDocument(editor, outputPath, options = {}) {
     exportOptions.comments = comments;
   }
 
-  const exportedBuffer = await editor.exportDocx(exportOptions);
+  let exportedBuffer = await editor.exportDocx(exportOptions);
+
+  // Post-process: inject comments.xml.rels for hyperlinks in comment bodies
+  if (comments.length > 0) {
+    exportedBuffer = await injectCommentHyperlinkRels(exportedBuffer);
+  }
+
   await writeFile(outputPath, Buffer.from(exportedBuffer));
 }
