@@ -114,6 +114,11 @@ const UUID_GUIDANCE =
   'UUIDs are regenerated on each document load and are not portable across CLI commands. ' +
   'Use seqId (e.g. "b001") from the extract output instead.';
 
+/** Deprecation warning emitted when a UUID resolves successfully within a session */
+const UUID_DEPRECATION =
+  'UUID block IDs are deprecated in edit files. ' +
+  'Use seqId (e.g. "b001") instead — UUIDs are session-volatile and will not work across CLI commands.';
+
 /**
  * Detect if a block is likely a TOC (Table of Contents) entry.
  * TOC blocks have deeply nested link structures that cause ProseMirror
@@ -503,6 +508,18 @@ async function applyOneEdit(editor, edit, author, commentsStore, ir, options = {
     return { success: false, error: `Block not found: ${edit.afterBlockId}.${hint}` };
   }
 
+  // Emit deprecation warning when UUID is used (even if it resolves in this session)
+  if (edit.blockId && looksLikeUuid(edit.blockId) && blockId) {
+    const matchedBlock = ir.blocks.find(b => b.id === blockId);
+    const seqId = matchedBlock ? matchedBlock.seqId : 'unknown';
+    console.warn(`[DEPRECATED] Edit uses UUID "${edit.blockId}" (resolves to ${seqId}). ${UUID_DEPRECATION}`);
+  }
+  if (edit.afterBlockId && looksLikeUuid(edit.afterBlockId) && afterBlockId) {
+    const matchedBlock = ir.blocks.find(b => b.id === afterBlockId);
+    const seqId = matchedBlock ? matchedBlock.seqId : 'unknown';
+    console.warn(`[DEPRECATED] Edit uses UUID "${edit.afterBlockId}" (resolves to ${seqId}). ${UUID_DEPRECATION}`);
+  }
+
   // Pre-check for TOC blocks on replace operations (they fail with cryptic ProseMirror errors)
   // This provides a clear error message instead of letting the operation fail
   if (operation === 'replace' && edit.blockId) {
@@ -821,6 +838,18 @@ export function validateEditsAgainstIR(edits, ir, options = {}) {
         message: guidance
       });
       continue;
+    }
+
+    // Warn when UUID is used (even if it resolves in this session)
+    if (looksLikeUuid(blockId) && blockIdSet.has(blockId)) {
+      const matchedBlock = blockById.get(blockId);
+      const seqId = matchedBlock ? matchedBlock.seqId : 'unknown';
+      warnings.push({
+        editIndex: i,
+        type: 'deprecated_uuid',
+        blockId,
+        message: `Edit ${i} uses UUID "${blockId}" (resolves to ${seqId}). ${UUID_DEPRECATION}`
+      });
     }
 
     // Validate operation-specific requirements

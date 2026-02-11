@@ -398,16 +398,14 @@ Use this schema to validate your edits before applying:
 
 ## ID Formats
 
-Both formats are accepted:
+**Always use seqId.** UUIDs are deprecated for edit files and will emit a warning.
 
-| Format | Example | Usage |
-|--------|---------|-------|
-| **seqId** | `b001`, `b025`, `b100` | Recommended - stable, human-readable |
-| **UUID** | `550e8400-e29b-41d4-...` | Internal SuperDoc format |
+| Format | Example | Status |
+|--------|---------|--------|
+| **seqId** | `b001`, `b025`, `b100` | **Required** — stable, human-readable, portable across CLI commands |
+| **UUID** | `550e8400-e29b-41d4-...` | **Deprecated** — session-volatile, regenerated on each document load |
 
-SeqIds are derived from document order and are consistent across extractions of the same document.
-
-**Important:** UUIDs are session-volatile — they change every time the document is loaded. For CLI workflows (`extract` → `apply`), always use `seqId`. UUIDs only work within a single programmatic session (same editor instance).
+SeqIds are derived from document order and are consistent across extractions of the same document. UUIDs change every time the document is loaded and are not portable across CLI invocations (`extract` → `apply`). UUID acceptance is retained only for backward compatibility within a single programmatic session (same editor instance) and will produce a deprecation warning.
 
 ---
 

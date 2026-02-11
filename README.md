@@ -613,7 +613,7 @@ Each block has two IDs:
 | **UUID** | `550e8400-e29b-41d4-a716-446655440000` | SuperDoc internal ID, **regenerated on each document load — not portable across CLI commands** |
 | **seqId** | `b001`, `b002`, `b003` | Stable sequential ID for LLM reference — **use this in edit files** |
 
-Both formats are accepted in edits. **SeqIds are strongly recommended.** UUIDs are session-volatile and will fail when used across separate CLI invocations (e.g., extract → apply).
+**Always use seqId in edit files.** UUIDs are session-volatile — they are regenerated on each document load and will fail when used across separate CLI invocations (e.g., extract → apply). UUIDs are accepted for backward compatibility within a single programmatic session, but this is deprecated and will emit a warning.
 
 ---
 
