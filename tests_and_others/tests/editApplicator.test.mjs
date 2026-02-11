@@ -19,7 +19,8 @@ import {
   isTocBlock,
   detectTocStructure,
   looksLikeUuid,
-  buildCommentEntry
+  buildCommentEntry,
+  linkifyLine
 } from '../../src/editApplicator.mjs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -1274,6 +1275,144 @@ describe('buildCommentEntry', () => {
     const entry = buildCommentEntry('comment-noemail', 'Text', { name: 'Bot' });
     assert.strictEqual(entry.creatorName, 'Bot');
     assert.strictEqual(entry.creatorEmail, '');
+  });
+});
+
+// ====================================================================
+// A021: linkifyLine + buildCommentEntry URL linkification tests
+// ====================================================================
+
+describe('linkifyLine', () => {
+  it('returns plain text node for line with no URL', () => {
+    const result = linkifyLine('Just plain text');
+    assert.deepStrictEqual(result, [
+      { type: 'text', text: 'Just plain text' }
+    ]);
+  });
+
+  it('returns space node for empty string', () => {
+    const result = linkifyLine('');
+    assert.deepStrictEqual(result, [
+      { type: 'text', text: ' ' }
+    ]);
+  });
+
+  it('linkifies a standalone URL', () => {
+    const result = linkifyLine('https://www.example.com/path');
+    assert.strictEqual(result.length, 1);
+    assert.strictEqual(result[0].text, 'https://www.example.com/path');
+    assert.deepStrictEqual(result[0].marks, [
+      { type: 'link', attrs: { href: 'https://www.example.com/path' } }
+    ]);
+  });
+
+  it('splits text before and after a URL', () => {
+    const result = linkifyLine('Source: https://www.elitigation.sg/gdviewer/s/2007_SGCA_37');
+    assert.strictEqual(result.length, 2);
+    // Text before
+    assert.strictEqual(result[0].text, 'Source: ');
+    assert.strictEqual(result[0].marks, undefined);
+    // URL with link mark
+    assert.strictEqual(result[1].text, 'https://www.elitigation.sg/gdviewer/s/2007_SGCA_37');
+    assert.deepStrictEqual(result[1].marks, [
+      { type: 'link', attrs: { href: 'https://www.elitigation.sg/gdviewer/s/2007_SGCA_37' } }
+    ]);
+  });
+
+  it('handles URL followed by trailing text', () => {
+    const result = linkifyLine('Visit https://example.com for details');
+    assert.strictEqual(result.length, 3);
+    assert.strictEqual(result[0].text, 'Visit ');
+    assert.strictEqual(result[1].text, 'https://example.com');
+    assert.deepStrictEqual(result[1].marks, [
+      { type: 'link', attrs: { href: 'https://example.com' } }
+    ]);
+    assert.strictEqual(result[2].text, ' for details');
+  });
+
+  it('strips trailing period from URL', () => {
+    const result = linkifyLine('See https://example.com/page.');
+    // URL should not include the trailing period
+    const linkNode = result.find(n => n.marks);
+    assert.strictEqual(linkNode.text, 'https://example.com/page');
+    assert.strictEqual(linkNode.marks[0].attrs.href, 'https://example.com/page');
+    // The period should be in the next text node
+    const lastNode = result[result.length - 1];
+    assert.ok(lastNode.text.startsWith('.'));
+  });
+
+  it('handles multiple URLs in one line', () => {
+    const result = linkifyLine('Compare https://a.com and https://b.com here');
+    const links = result.filter(n => n.marks);
+    assert.strictEqual(links.length, 2);
+    assert.strictEqual(links[0].text, 'https://a.com');
+    assert.strictEqual(links[1].text, 'https://b.com');
+  });
+
+  it('handles http (not just https)', () => {
+    const result = linkifyLine('Source: http://example.com/path');
+    const linkNode = result.find(n => n.marks);
+    assert.ok(linkNode, 'Should detect http:// URL');
+    assert.strictEqual(linkNode.text, 'http://example.com/path');
+  });
+
+  it('handles eLitigation URL format', () => {
+    const url = 'https://www.elitigation.sg/gdviewer/s/2020_SGCA_15';
+    const result = linkifyLine(`Source: ${url}`);
+    const linkNode = result.find(n => n.marks);
+    assert.strictEqual(linkNode.text, url);
+    assert.strictEqual(linkNode.marks[0].attrs.href, url);
+  });
+
+  it('preserves emoji and unicode around URLs', () => {
+    const result = linkifyLine('✅ Source: https://example.com/判决');
+    assert.strictEqual(result[0].text, '✅ Source: ');
+    const linkNode = result.find(n => n.marks);
+    assert.ok(linkNode);
+  });
+});
+
+describe('buildCommentEntry — URL linkification', () => {
+  it('linkifies URL in Source line of comment', () => {
+    const text = '✅ VERIFIED: Citation resolved and checks passed.\nSource: https://www.elitigation.sg/gdviewer/s/2007_SGCA_37';
+    const entry = buildCommentEntry('comment-link-1', text, { name: 'A', email: 'a@b.c' });
+
+    // First paragraph: no link (plain status text)
+    const p1 = entry.commentJSON[0];
+    assert.strictEqual(p1.content.length, 1);
+    assert.strictEqual(p1.content[0].marks, undefined);
+
+    // Second paragraph: "Source: " prefix + linked URL
+    const p2 = entry.commentJSON[1];
+    assert.strictEqual(p2.content.length, 2, 'Should have prefix text + link');
+    assert.strictEqual(p2.content[0].text, 'Source: ');
+    assert.strictEqual(p2.content[0].marks, undefined);
+    assert.strictEqual(p2.content[1].text, 'https://www.elitigation.sg/gdviewer/s/2007_SGCA_37');
+    assert.deepStrictEqual(p2.content[1].marks, [
+      { type: 'link', attrs: { href: 'https://www.elitigation.sg/gdviewer/s/2007_SGCA_37' } }
+    ]);
+  });
+
+  it('does not add link marks when comment has no URLs', () => {
+    const entry = buildCommentEntry('comment-nourl', 'Plain comment text', { name: 'A', email: 'a@b.c' });
+    const content = entry.commentJSON[0].content;
+    assert.strictEqual(content.length, 1);
+    assert.strictEqual(content[0].text, 'Plain comment text');
+    assert.strictEqual(content[0].marks, undefined);
+  });
+
+  it('preserves existing multi-line behaviour with URLs on second line', () => {
+    const text = 'Line one\nSource: https://example.com\nLine three';
+    const entry = buildCommentEntry('comment-multi-url', text, { name: 'A', email: 'a@b.c' });
+
+    assert.strictEqual(entry.commentJSON.length, 3);
+    // Line 1: plain
+    assert.strictEqual(entry.commentJSON[0].content[0].marks, undefined);
+    // Line 2: linked
+    const linkNode = entry.commentJSON[1].content.find(n => n.marks);
+    assert.ok(linkNode, 'Second paragraph should contain a link');
+    // Line 3: plain
+    assert.strictEqual(entry.commentJSON[2].content[0].marks, undefined);
   });
 });
 

@@ -101,6 +101,71 @@ import {
 const DEFAULT_AUTHOR = { name: 'AI Assistant', email: 'ai@example.com' };
 
 /**
+ * URL pattern for detecting HTTP(S) links in text.
+ * Matches http:// and https:// URLs, stopping at whitespace and common
+ * delimiter characters that are unlikely to be part of a URL.
+ * Trailing punctuation (period, comma, semicolon, colon, exclamation,
+ * question mark, closing paren/bracket) is stripped to avoid capturing
+ * sentence-ending punctuation as part of the URL.
+ */
+const URL_RE = /https?:\/\/[^\s<>"{}|\\^`\[\]]+/g;
+const TRAILING_PUNCT_RE = /[.,;:!?)]+$/;
+
+/**
+ * Split a line of text into ProseMirror content nodes, wrapping any
+ * HTTP(S) URLs in a `link` mark so they become clickable hyperlinks
+ * in the exported DOCX.
+ *
+ * Lines with no URLs return the same structure as before: a single
+ * text node with no marks.
+ *
+ * @param {string} line - A single line of comment text.
+ * @returns {Array<Object>} Array of ProseMirror text nodes.
+ */
+export function linkifyLine(line) {
+  if (!line) return [{ type: 'text', text: ' ' }];
+
+  const content = [];
+  let lastIndex = 0;
+
+  for (const match of line.matchAll(URL_RE)) {
+    // Strip trailing punctuation that's likely not part of the URL
+    let url = match[0];
+    const trailingMatch = url.match(TRAILING_PUNCT_RE);
+    if (trailingMatch) {
+      url = url.slice(0, -trailingMatch[0].length);
+    }
+
+    const matchStart = match.index;
+    const matchEnd = matchStart + url.length;
+
+    // Text before this URL
+    if (matchStart > lastIndex) {
+      content.push({ type: 'text', text: line.slice(lastIndex, matchStart) });
+    }
+
+    // The URL itself, with a link mark
+    content.push({
+      type: 'text',
+      text: url,
+      marks: [{ type: 'link', attrs: { href: url } }]
+    });
+
+    // Advance past the URL (but NOT past stripped trailing punctuation —
+    // that will be picked up as plain text in the next iteration or final segment)
+    lastIndex = matchEnd;
+  }
+
+  // Remaining text after the last URL (or the entire line if no URLs found)
+  if (lastIndex < line.length) {
+    content.push({ type: 'text', text: line.slice(lastIndex) });
+  }
+
+  // Fallback: if the line was empty or only whitespace, ensure at least one node
+  return content.length > 0 ? content : [{ type: 'text', text: line || ' ' }];
+}
+
+/**
  * Build a comment entry in the format expected by SuperDoc's exportDocx().
  *
  * SuperDoc requires:
@@ -118,13 +183,12 @@ const DEFAULT_AUTHOR = { name: 'AI Assistant', email: 'ai@example.com' };
  * @returns {Object} SuperDoc-compatible comment entry
  */
 export function buildCommentEntry(commentId, commentText, author) {
-  // Build ProseMirror paragraph nodes — split on newlines for multi-line comments
+  // Build ProseMirror paragraph nodes — split on newlines for multi-line comments.
+  // URLs are wrapped in link marks so they export as clickable hyperlinks in DOCX.
   const lines = (commentText || '').split('\n');
   const commentJSON = lines.map(line => ({
     type: 'paragraph',
-    content: [
-      { type: 'text', text: line || ' ' }  // empty lines get a space to avoid empty paragraphs
-    ]
+    content: linkifyLine(line)
   }));
 
   return {
