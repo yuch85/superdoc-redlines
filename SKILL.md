@@ -1,9 +1,10 @@
 ---
 name: superdoc-redlines
-description: CLI tool for AI agents to apply tracked changes and comments to DOCX files using ID-based editing
-version: 0.2.0
-commands: [extract, read, validate, apply, merge, parse-edits, to-markdown]
-reference_doc: README.md
+description: "Apply tracked changes, comments, insertions, and deletions to Word (.docx) documents using block ID-based editing. Use when the user asks to redline a Word document, add track changes, insert review comments, merge multi-agent edits, or programmatically modify .docx files."
+metadata:
+  version: "0.2.0"
+  commands: [extract, read, validate, apply, merge, parse-edits, to-markdown]
+  reference_doc: README.md
 ---
 
 # SuperDoc Redlines Skill
@@ -239,160 +240,11 @@ Rewriting entire clause with new structure?
 
 ---
 
-## Edit Schema (JSON Schema)
+## Edit Schema & Expected Outputs
 
-Use this schema to validate your edits before applying:
+> See [README.md](./README.md) for the full JSON Schema and detailed output examples for each command.
 
-```json
-{
-  "$schema": "http://json-schema.org/draft-07/schema#",
-  "type": "object",
-  "required": ["version", "edits"],
-  "properties": {
-    "version": {
-      "type": "string",
-      "const": "0.2.0"
-    },
-    "author": {
-      "type": "object",
-      "properties": {
-        "name": { "type": "string" },
-        "email": { "type": "string", "format": "email" }
-      }
-    },
-    "edits": {
-      "type": "array",
-      "items": {
-        "oneOf": [
-          {
-            "type": "object",
-            "title": "Replace Operation",
-            "required": ["blockId", "operation", "newText"],
-            "properties": {
-              "blockId": { "type": "string", "pattern": "^b\\d+$" },
-              "operation": { "const": "replace" },
-              "newText": { "type": "string", "minLength": 1 },
-              "comment": { "type": "string" },
-              "diff": { "type": "boolean", "default": true }
-            },
-            "additionalProperties": false
-          },
-          {
-            "type": "object",
-            "title": "Delete Operation",
-            "required": ["blockId", "operation"],
-            "properties": {
-              "blockId": { "type": "string", "pattern": "^b\\d+$" },
-              "operation": { "const": "delete" },
-              "comment": { "type": "string" }
-            },
-            "additionalProperties": false
-          },
-          {
-            "type": "object",
-            "title": "Comment Operation",
-            "required": ["blockId", "operation", "comment"],
-            "properties": {
-              "blockId": { "type": "string", "pattern": "^b\\d+$" },
-              "operation": { "const": "comment" },
-              "comment": { "type": "string", "minLength": 1 }
-            },
-            "additionalProperties": false
-          },
-          {
-            "type": "object",
-            "title": "Insert Operation",
-            "required": ["afterBlockId", "operation", "text"],
-            "properties": {
-              "afterBlockId": { "type": "string", "pattern": "^b\\d+$" },
-              "operation": { "const": "insert" },
-              "text": { "type": "string", "minLength": 1 },
-              "type": { "enum": ["paragraph", "heading", "listItem"], "default": "paragraph" },
-              "level": { "type": "integer", "minimum": 1, "maximum": 6 },
-              "comment": { "type": "string" }
-            },
-            "additionalProperties": false
-          }
-        ]
-      }
-    }
-  }
-}
-```
-
----
-
-## Expected Outputs
-
-### Successful Apply
-
-```json
-{
-  "success": true,
-  "applied": 5,
-  "skipped": [],
-  "warnings": [],
-  "outputFile": "redlined.docx"
-}
-```
-
-### Apply with Warnings
-
-```json
-{
-  "success": true,
-  "applied": 4,
-  "skipped": [
-    { "blockId": "b999", "reason": "Block ID not found" }
-  ],
-  "warnings": [
-    { "blockId": "b050", "warning": "Possible truncation detected in newText" }
-  ],
-  "outputFile": "redlined.docx"
-}
-```
-
-### Validation Error
-
-```json
-{
-  "success": false,
-  "valid": false,
-  "issues": [
-    { "blockId": "b999", "error": "Block ID not found in document" },
-    { "index": 2, "error": "Missing required field: newText" }
-  ]
-}
-```
-
-### Read Document Output
-
-```json
-{
-  "success": true,
-  "totalChunks": 1,
-  "currentChunk": 0,
-  "hasMore": false,
-  "nextChunkCommand": null,
-  "document": {
-    "metadata": { "filename": "doc.docx", "blockRange": { "start": "b001", "end": "b150" } },
-    "outline": [
-      { "title": "1. Definitions", "level": 1, "seqId": "b001" }
-    ],
-    "blocks": [
-      { "seqId": "b001", "type": "heading", "level": 1, "text": "1. Definitions" },
-      { "seqId": "b002", "type": "paragraph", "text": "\"Agreement\" means..." }
-    ]
-  }
-}
-```
-
-### Exit Codes
-
-| Code | Meaning |
-|------|---------|
-| `0` | Success |
-| `1` | Validation error, edit failed, or `--strict` warning |
+**Exit codes:** `0` = success, `1` = validation error, edit failure, or `--strict` warning.
 
 ---
 
