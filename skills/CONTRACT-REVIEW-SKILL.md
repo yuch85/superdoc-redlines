@@ -1,6 +1,6 @@
 ---
-name: Contract Review Skill
-description: Systematic methodology for AI agents to review and amend contracts using superdoc-redlines
+name: contract-review-skill
+description: "Two-pass methodology for reviewing and amending legal contracts with tracked changes using superdoc-redlines. Use when the user asks to review a contract, redline a legal document, amend contract clauses, convert jurisdictions, update defined terms, or mark up a Word document with legal edits."
 ---
 
 # Contract Review Skill
@@ -367,60 +367,7 @@ Use the built-in recompress command:
 node superdoc-redline.mjs recompress --input amended.docx
 ```
 
-Or use Python to recompress:
-
-```python
-python3 << 'EOF'
-import zipfile, os
-
-input_file = "amended.docx"
-temp_dir = "/tmp/docx-recompress"
-
-# Extract
-os.makedirs(temp_dir, exist_ok=True)
-with zipfile.ZipFile(input_file, 'r') as zf:
-    zf.extractall(temp_dir)
-
-# Recompress with deflate
-os.remove(input_file)
-with zipfile.ZipFile(input_file, 'w', zipfile.ZIP_DEFLATED, compresslevel=9) as zf:
-    for root, dirs, files in os.walk(temp_dir):
-        for file in files:
-            file_path = os.path.join(root, file)
-            zf.write(file_path, os.path.relpath(file_path, temp_dir))
-
-# Cleanup
-import shutil
-shutil.rmtree(temp_dir)
-print(f"Recompressed: {os.path.getsize(input_file) / 1024:.1f} KB")
-EOF
-```
-
-| Before | After | Reason |
-|--------|-------|--------|
-| ~2.5MB | ~400KB | SuperDoc uses `Stored` (0% compression); recompress uses `Deflate` (80-90%) |
-
----
-
-## Understanding Track Changes Mode
-
-When applying edits with superdoc-redlines, the output DOCX uses **track changes** (revisions):
-
-| Operation | What Happens | How It Appears in Word |
-|-----------|--------------|------------------------|
-| **Replace** | Old text marked deleted, new text inserted | Old = strikethrough, New = underlined |
-| **Delete** | Text marked as deleted (not physically removed) | Text appears with strikethrough |
-| **Insert** | New block added with insertion mark | New text appears underlined |
-
-### Key Implications
-
-1. **Deleted text still appears in IR extraction** - Because track changes preserves deleted content, extracting IR from an amended document will show BOTH old and new text concatenated.
-
-2. **Post-apply grep finds "deleted" terms** - If you grep for a term in the amended IR, you'll find it because the deleted text is preserved. This is expected behavior.
-
-3. **To verify deletions, open in Word** - Use Microsoft Word's Review > Track Changes to see deletions with strikethrough.
-
-4. **Accept changes for clean extraction** - To get IR with only the final text, open the DOCX in Word, accept all changes, save, then re-extract.
+Output files are ~6x larger than expected due to no compression. Always recompress after applying.
 
 ---
 
@@ -552,25 +499,7 @@ Each edit object MUST use these EXACT field names:
 
 ### Common Format Errors (WILL FAIL VALIDATION)
 
-| WRONG Field Name | CORRECT Field Name |
-|------------------|-------------------|
-| `"searchText"` | NOT USED - delete this field |
-| `"replaceText"` | `"newText"` |
-| `"type"` | `"operation"` |
-| `"text"` (for replace) | `"newText"` |
-| `"search"`, `"replace"` | Use `"newText"` with full block content |
-| `"oldText"` | NOT USED for edits (only for validation) |
-
-**Correct structure:**
-```json
-{
-  "blockId": "b149",
-  "operation": "replace",
-  "newText": "[FULL REPLACEMENT TEXT]",
-  "diff": true,
-  "comment": "Explanation"
-}
-```
+Use exact field names: `blockId`, `operation`, `newText`, `afterBlockId`. Common mistakes: `"type"` instead of `"operation"`, `"replaceText"` or `"text"` instead of `"newText"`, `"searchText"` (not used — tool is block-based).
 
 ### Validation Errors and Warnings
 

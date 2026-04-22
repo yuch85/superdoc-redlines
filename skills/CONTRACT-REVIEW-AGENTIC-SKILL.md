@@ -1,6 +1,6 @@
 ---
-name: Contract Review Agentic Skill
-description: Orchestrator-subagent methodology for parallel contract review using superdoc-redlines
+name: contract-review-agentic-skill
+description: "Multi-agent orchestrator for reviewing and amending large contracts using superdoc-redlines. Use when the user needs to split contract review across multiple agents, coordinate parallel redline edits across document sections like definitions, provisions, and schedules, or when a single-agent review exceeds context limits."
 ---
 
 # Contract Review Agentic Skill
