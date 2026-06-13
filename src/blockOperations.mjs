@@ -27,7 +27,7 @@ import { computeWordDiff, diffToOperations } from './wordDiff.mjs';
  * @property {{ insertions: number, deletions: number, unchanged: number }} [diffStats]
  */
 
-const DEFAULT_AUTHOR = { name: 'AI Assistant', email: 'ai@example.com' };
+const DEFAULT_AUTHOR = { name: 'Author', email: '' };
 
 /**
  * Resolve a block ID (could be UUID or seqId) to a UUID.

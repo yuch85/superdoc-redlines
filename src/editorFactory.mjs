@@ -26,7 +26,7 @@ import { readFile } from 'fs/promises';
 export async function createHeadlessEditor(buffer, options = {}) {
   const {
     documentMode = 'editing',
-    user = { name: 'AI Assistant', email: 'ai@example.com' }
+    user = { name: 'Author', email: '' }
   } = options;
 
   // Create a virtual DOM environment for SuperDoc
@@ -78,6 +78,6 @@ export async function createEditorFromFile(filePath, options = {}) {
 export async function createSuggestingEditor(filePath, user) {
   return createEditorFromFile(filePath, {
     documentMode: 'suggesting',
-    user: user || { name: 'AI Assistant', email: 'ai@example.com' }
+    user: user || { name: 'Author', email: '' }
   });
 }

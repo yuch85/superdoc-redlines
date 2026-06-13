@@ -98,7 +98,7 @@ import {
  * @property {string} message
  */
 
-const DEFAULT_AUTHOR = { name: 'AI Assistant', email: 'ai@example.com' };
+const DEFAULT_AUTHOR = { name: 'Author', email: '' };
 
 /**
  * URL pattern for detecting HTTP(S) links in text.
@@ -300,7 +300,7 @@ export function buildCommentEntry(commentId, commentText, author) {
 
   return {
     commentId,
-    creatorName: typeof author === 'string' ? author : (author?.name || 'AI Assistant'),
+    creatorName: typeof author === 'string' ? author : (author?.name || 'Author'),
     creatorEmail: typeof author === 'string' ? '' : (author?.email || ''),
     createdTime: Date.now(),
     commentJSON
