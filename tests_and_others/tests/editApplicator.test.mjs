@@ -1241,13 +1241,13 @@ describe('buildCommentEntry', () => {
 
   it('handles null author with defaults', () => {
     const entry = buildCommentEntry('comment-789', 'Text', null);
-    assert.strictEqual(entry.creatorName, 'AI Assistant');
+    assert.strictEqual(entry.creatorName, 'Author');
     assert.strictEqual(entry.creatorEmail, '');
   });
 
   it('handles undefined author with defaults', () => {
     const entry = buildCommentEntry('comment-abc', 'Text', undefined);
-    assert.strictEqual(entry.creatorName, 'AI Assistant');
+    assert.strictEqual(entry.creatorName, 'Author');
     assert.strictEqual(entry.creatorEmail, '');
   });
 
@@ -1268,7 +1268,7 @@ describe('buildCommentEntry', () => {
 
   it('handles author object with missing name', () => {
     const entry = buildCommentEntry('comment-noname', 'Text', { email: 'test@test.com' });
-    assert.strictEqual(entry.creatorName, 'AI Assistant');
+    assert.strictEqual(entry.creatorName, 'Author');
     assert.strictEqual(entry.creatorEmail, 'test@test.com');
   });
 

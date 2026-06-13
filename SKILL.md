@@ -94,6 +94,7 @@ node superdoc-redline.mjs apply \
   --input contract.docx \
   --output redlined.docx \
   --edits edits.json \
+  --author-name "Author" \
   --strict
 ```
 
@@ -515,8 +516,7 @@ node superdoc-redline.mjs apply -i contract.docx -o redlined.docx -e merged.json
 
 ```bash
 node superdoc-redline.mjs apply -i doc.docx -o out.docx -e edits.json \
-  --author-name "AI Counsel" \
-  --author-email "ai@firm.com"
+  --author-name "Author"
 ```
 
 ### Disable Track Changes
