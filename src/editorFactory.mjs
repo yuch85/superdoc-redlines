@@ -7,6 +7,7 @@
 import { Editor, getStarterExtensions } from '@harbour-enterprises/superdoc/super-editor';
 import { JSDOM } from 'jsdom';
 import { readFile } from 'fs/promises';
+import { resolveAuthor } from './authorConfig.mjs';
 
 /**
  * Create a headless SuperDoc editor instance from a buffer.
@@ -26,7 +27,7 @@ import { readFile } from 'fs/promises';
 export async function createHeadlessEditor(buffer, options = {}) {
   const {
     documentMode = 'editing',
-    user = { name: 'AI Assistant', email: 'ai@example.com' }
+    user = resolveAuthor()
   } = options;
 
   // Create a virtual DOM environment for SuperDoc
@@ -78,6 +79,6 @@ export async function createEditorFromFile(filePath, options = {}) {
 export async function createSuggestingEditor(filePath, user) {
   return createEditorFromFile(filePath, {
     documentMode: 'suggesting',
-    user: user || { name: 'AI Assistant', email: 'ai@example.com' }
+    user: user || resolveAuthor()
   });
 }

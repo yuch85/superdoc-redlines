@@ -8,6 +8,7 @@ import { createHeadlessEditor } from './editorFactory.mjs';
 import { createIdManager } from './idManager.mjs';
 import { parseClauseNumber, analyzeHeading } from './clauseParser.mjs';
 import { readFile } from 'fs/promises';
+import { basename } from 'path';
 
 /**
  * Extract structured intermediate representation from a DOCX file.
@@ -55,7 +56,7 @@ export async function extractDocumentIR(inputPath, options = {}) {
   // 6. Build result
   const result = {
     metadata: {
-      filename: inputPath.split('/').pop(),
+      filename: basename(inputPath),
       generated: new Date().toISOString(),
       version: '0.2.0',
       blockCount: blocks.length,

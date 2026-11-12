@@ -30,6 +30,7 @@ import { readDocument, getDocumentStats } from './src/documentReader.mjs';
 import { applyEdits, validateEdits } from './src/editApplicator.mjs';
 import { mergeEditFiles, validateMergedEdits } from './src/editMerge.mjs';
 import { parseMarkdownEdits, editsToMarkdown } from './src/markdownEditsParser.mjs';
+import { resolveAuthor } from './src/authorConfig.mjs';
 
 /**
  * Parse integer argument for Commander.js options.
@@ -194,8 +195,8 @@ program
   .requiredOption('-i, --input <path>', 'Input DOCX file')
   .requiredOption('-o, --output <path>', 'Output DOCX file')
   .requiredOption('-e, --edits <path>', 'Edits JSON file')
-  .option('--author-name <name>', 'Author name for track changes', 'AI Assistant')
-  .option('--author-email <email>', 'Author email', 'ai@example.com')
+  .option('--author-name <name>', 'Author name for track changes (default: $SUPERDOC_AUTHOR_NAME or "Author")')
+  .option('--author-email <email>', 'Author email (default: $SUPERDOC_AUTHOR_EMAIL or empty)')
   .option('--no-track-changes', 'Disable track changes mode')
   .option('--no-validate', 'Skip validation before applying')
   .option('--no-sort', 'Skip automatic edit sorting')
@@ -231,10 +232,7 @@ program
         strict: options.strict || false,
         skipInvalid: options.skipInvalid || false,
         allowReduction: options.allowReduction || false,
-        author: {
-          name: options.authorName,
-          email: options.authorEmail
-        }
+        author: resolveAuthor({ name: options.authorName, email: options.authorEmail })
       });
 
       console.log(`\nResults:`);

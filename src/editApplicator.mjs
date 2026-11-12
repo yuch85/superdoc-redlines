@@ -98,7 +98,7 @@ import {
  * @property {string} message
  */
 
-const DEFAULT_AUTHOR = { name: 'AI Assistant', email: 'ai@example.com' };
+import { DEFAULT_AUTHOR, resolveAuthor } from './authorConfig.mjs';
 
 /**
  * URL pattern for detecting HTTP(S) links in text.
@@ -300,7 +300,7 @@ export function buildCommentEntry(commentId, commentText, author) {
 
   return {
     commentId,
-    creatorName: typeof author === 'string' ? author : (author?.name || 'AI Assistant'),
+    creatorName: typeof author === 'string' ? author : (author?.name || DEFAULT_AUTHOR.name),
     creatorEmail: typeof author === 'string' ? '' : (author?.email || ''),
     createdTime: Date.now(),
     commentJSON
@@ -506,7 +506,7 @@ export function validateNewText(originalText, newText, options = {}) {
 export async function applyEdits(inputPath, outputPath, editConfig, options = {}) {
   const {
     trackChanges = true,
-    author = editConfig.author || DEFAULT_AUTHOR,
+    author = resolveAuthor(editConfig.author),
     validateFirst = true,
     sortEdits = true,
     verbose = false,
@@ -1282,7 +1282,7 @@ export function sortEditsForApplication(edits, ir) {
 export async function loadDocumentForEditing(inputPath, options = {}) {
   const {
     trackChanges = true,
-    author = DEFAULT_AUTHOR
+    author = resolveAuthor()
   } = options;
 
   const buffer = await readFile(inputPath);

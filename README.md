@@ -149,8 +149,8 @@ node superdoc-redline.mjs apply -i doc.docx -o out.docx -e edits.json --strict  
 | `-i, --input <path>` | Input DOCX file (required) |
 | `-o, --output <path>` | Output DOCX file (required) |
 | `-e, --edits <path>` | Edits JSON file (required) |
-| `--author-name <name>` | Author name for track changes (default: `"AI Assistant"`) |
-| `--author-email <email>` | Author email (default: `"ai@example.com"`) |
+| `--author-name <name>` | Author name for track changes (default: `"Author"`) |
+| `--author-email <email>` | Author email (default: empty) |
 | `--no-track-changes` | Disable track changes mode |
 | `--no-validate` | Skip validation before applying |
 | `--no-sort` | Skip automatic edit sorting |
@@ -521,7 +521,7 @@ node superdoc-redline.mjs to-markdown -i edits.json -o edits.md
 
 - **Insertions** - Shown as underlined additions
 - **Deletions** - Shown as strikethrough removals
-- **Changes attributed** to the author you specify (default: "AI Assistant")
+- **Changes attributed** to the author you specify (default: "Author")
 
 ### Default Behavior
 
@@ -536,6 +536,19 @@ node superdoc-redline.mjs apply -i doc.docx -o redlined.docx -e edits.json
 node superdoc-redline.mjs apply -i doc.docx -o redlined.docx -e edits.json \
   --author-name "Legal Review Bot" \
   --author-email "review@firm.com"
+```
+
+The author identity is resolved in this order (highest wins):
+
+1. CLI flags `--author-name` / `--author-email` (or the `author` option when used as a library)
+2. Environment variables `SUPERDOC_AUTHOR_NAME` / `SUPERDOC_AUTHOR_EMAIL`
+3. Built-in default: name `"Author"`, email empty
+
+Set the environment variables to make the identity persistent for a user or machine without passing flags on every run:
+
+```bash
+export SUPERDOC_AUTHOR_NAME="Jane Doe"
+export SUPERDOC_AUTHOR_EMAIL="jane@firm.com"
 ```
 
 ### Disable Track Changes

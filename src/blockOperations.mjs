@@ -27,7 +27,7 @@ import { computeWordDiff, diffToOperations } from './wordDiff.mjs';
  * @property {{ insertions: number, deletions: number, unchanged: number }} [diffStats]
  */
 
-const DEFAULT_AUTHOR = { name: 'AI Assistant', email: 'ai@example.com' };
+import { resolveAuthor } from './authorConfig.mjs';
 
 /**
  * Resolve a block ID (could be UUID or seqId) to a UUID.
@@ -516,7 +516,7 @@ export async function replaceBlockById(editor, blockId, newText, options = {}) {
     diff = true,
     trackChanges = true,
     comment = null,
-    author = DEFAULT_AUTHOR,
+    author = resolveAuthor(),
     verbose = false
   } = options;
 
@@ -578,7 +578,7 @@ export async function deleteBlockById(editor, blockId, options = {}) {
   const {
     trackChanges = true,
     comment = null,
-    author = DEFAULT_AUTHOR
+    author = resolveAuthor()
   } = options;
 
   const resolvedId = resolveBlockId(editor, blockId);
@@ -676,7 +676,7 @@ export async function insertAfterBlock(editor, afterBlockId, text, options = {})
     level = 1,
     trackChanges = true,
     comment = null,
-    author = DEFAULT_AUTHOR
+    author = resolveAuthor()
   } = options;
 
   const resolvedId = resolveBlockId(editor, afterBlockId);
@@ -739,7 +739,7 @@ export async function insertBeforeBlock(editor, beforeBlockId, text, options = {
     level = 1,
     trackChanges = true,
     comment = null,
-    author = DEFAULT_AUTHOR
+    author = resolveAuthor()
   } = options;
 
   const resolvedId = resolveBlockId(editor, beforeBlockId);
@@ -790,7 +790,7 @@ export async function insertBeforeBlock(editor, beforeBlockId, text, options = {
  * @param {Author} [author] - Author info
  * @returns {Promise<OperationResult>}
  */
-export async function addCommentToBlock(editor, blockId, commentText, author = DEFAULT_AUTHOR) {
+export async function addCommentToBlock(editor, blockId, commentText, author = resolveAuthor()) {
   const resolvedId = resolveBlockId(editor, blockId);
   if (!resolvedId) {
     return { success: false, error: `Block not found: ${blockId}` };
@@ -929,7 +929,7 @@ export function findTextPositionInBlock(editor, blockId, searchText) {
  * @returns {Promise<OperationResult>}
  */
 export async function insertTextAfterMatch(editor, blockId, searchText, textToInsert, options = {}) {
-  const { trackChanges = false, author = DEFAULT_AUTHOR } = options;
+  const { trackChanges = false, author = resolveAuthor() } = options;
 
   const resolvedId = resolveBlockId(editor, blockId);
   if (!resolvedId) {
@@ -1042,7 +1042,7 @@ export async function highlightTextInBlock(editor, blockId, searchText, color = 
  * @param {Author} [author] - Author info
  * @returns {Promise<OperationResult>}
  */
-export async function addCommentToTextInBlock(editor, blockId, searchText, commentText, author = DEFAULT_AUTHOR) {
+export async function addCommentToTextInBlock(editor, blockId, searchText, commentText, author = resolveAuthor()) {
   const position = findTextPositionInBlock(editor, blockId, searchText);
   if (!position.found) {
     return { success: false, error: position.error };
