@@ -1,6 +1,6 @@
 ---
 name: superdoc-redlines
-description: CLI tool for AI agents to apply tracked changes and comments to DOCX files using ID-based editing
+description: "Apply tracked changes, comments, insertions, and deletions to Word (.docx) documents using block ID-based editing. Use when the user asks to redline a Word document, add track changes, insert review comments, merge multi-agent edits, or programmatically modify .docx files."
 version: 0.2.0
 commands: [extract, read, validate, apply, merge, parse-edits, to-markdown]
 reference_doc: README.md

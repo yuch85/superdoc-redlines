@@ -1,6 +1,6 @@
 ---
 name: Contract Review Skill
-description: Systematic methodology for AI agents to review and amend contracts using superdoc-redlines
+description: "Two-pass methodology for reviewing and amending legal contracts with tracked changes using superdoc-redlines. Use when the user asks to review a contract, redline a legal document, amend contract clauses, convert jurisdictions, update defined terms, or mark up a Word document with legal edits."
 ---
 
 # Contract Review Skill
